@@ -1,48 +1,42 @@
-# codex
+# Tafsir Session Manager (Full-Stack Next.js)
 
-This project is now a **Next.js** app wrapping the existing Tafsir Session Manager UI, ready to deploy on **Vercel**.
+یہ ایپ اب **Next.js + API Routes** پر چلتی ہے اور Vercel free plan کے مطابق deploy کی جا سکتی ہے۔
 
-## Local development
+## Features
 
-1. Install dependencies:
+- Attendance + speaker timer with persistent members
+- Drag-and-drop reorder in attendance list
+- Drag member into speaker window to select instantly
+- Speaker timer starts at `00:00` until someone is selected
+- CSV export for valid members only (blank/`none` excluded)
+- Responsive UI for mobile + desktop
+
+## Data storage (Vercel-friendly)
+
+### Recommended (Production): Vercel KV
+
+1. Vercel project میں **KV** add کریں (free tier available).
+2. یہ env vars خود add ہو جائیں گے:
+   - `KV_REST_API_URL`
+   - `KV_REST_API_TOKEN`
+3. Deploy کریں — data persistent رہے گا۔
+
+### Local fallback
+
+اگر KV env vars موجود نہ ہوں تو app `.data/members.json` میں data لکھتی ہے (local/dev mode fallback).
+
+## Run locally
 
 ```bash
 npm install
-```
-
-2. Run the Next.js dev server:
-
-```bash
 npm run dev
 ```
 
-3. Open <http://localhost:3000>.
+Open: <http://localhost:3000>
 
-## Production build
+## Build check
 
 ```bash
+npm run lint
 npm run build
-npm run start
-```
-
-## Deploy to Vercel
-
-### Option 1: Vercel dashboard
-
-1. Push this repository to GitHub.
-2. Import the repo in Vercel.
-3. Keep the default framework preset (**Next.js**).
-4. Click **Deploy**.
-
-### Option 2: Vercel CLI
-
-```bash
-npm i -g vercel
-vercel
-```
-
-For production deployment:
-
-```bash
-vercel --prod
 ```

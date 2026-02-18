@@ -9,11 +9,7 @@ body {
 .titleRow h1 { margin-bottom: 0.25rem; }
 .titleRow p { margin-top: 0; color: #4b5563; }
 .errorText { color: #b91c1c; font-weight: 600; }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .card {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -62,7 +58,30 @@ button.danger { background: #fee2e2; }
   color: #312e81;
 }
 .speakerConfig { display: grid; grid-template-columns: 1.5fr 1fr auto; gap: .5rem; margin-bottom: .7rem; }
+.progressTrack {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+  margin-bottom: .6rem;
+}
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #6366f1);
+  transition: width .3s ease;
+}
+.progressFill.session { background: linear-gradient(90deg, #0891b2, #06b6d4); }
+.queueWrap { display: flex; flex-wrap: wrap; gap: .35rem; }
+.queueChip {
+  font-size: .8rem;
+  background: #eef2ff;
+  color: #3730a3;
+  border-radius: 999px;
+  padding: .2rem .55rem;
+}
 
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; }
+  .speakerConfig { grid-template-columns: 1fr; }
 }

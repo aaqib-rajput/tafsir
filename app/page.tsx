@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type AttendanceStatus = "present" | "absent" | "unmarked";
 type Role = "participant" | "presenter" | "cohost" | "host";
+type TeamKey = "ALL" | "Team A" | "Team B" | "Team C";
 
 type Member = {
   id: string;
@@ -24,6 +25,18 @@ const ROLE_LIMITS: Record<Role, number> = {
   host: 600,
 };
 
+const TEAM_DATA: Record<Exclude<TeamKey, "ALL">, string[]> = {
+  "Team A": [
+    "Nadeem", "Zoya", "Rohma Zil Arsh", "Sameen Zara", "Ahmad Adrees", "Mubashir Ali", "Ali Hanzala", "Ammara", "Noor Ayesha", "Masaud Khan", "Khushbakht Tausif Hashmi", "Wasif", "Romana Daim", "Ahsan Raza", "Amina Khan", "Wania", "Shahid Ameer Hamza", "Afsana Yaqoob", "Safa Shahid", "Dr. Rimsha",
+  ],
+  "Team B": [
+    "Aqib", "Khadija", "Malaika Imran", "Hasnat Fatima", "Abdullah Shahbaz", "Rimsha Kousar", "Attaullah", "Sidra Sahir", "Maryam Iftikhar", "Saleha", "Huraima", "Sidra Bashir", "Usba", "Shaheer", "Zunaira Rashid", "Bilal", "Abdur Rehman Khan", "Abdullah Chaudhry", "Azhar Mehmood", "Tahira", "Nasseb Ullah", "Fiza Urooj", "Sadia Wajahat", "Muhammad Ibrahim", "Rabia Naqi", "Zamurrad",
+  ],
+  "Team C": [
+    "Saboor", "Kamran", "Sidra Younas", "Ishrat Fatima", "Saddam Sharif", "Faiza", "Rehana", "Talha Mushtaq", "Azeem Aourangzaib", "Mrs Azeem Aourangzaib", "Muhammad Uzair Rashid", "Fahad Khan", "Arsalan G14", "Arsalan G07", "Majid Khan", "Abdullah Khan", "Kashif Noor", "Zain ul Abideen", "Farhan Afzal", "Amna Fazahil", "Bilal Shahid", "Hina Yousuf",
+  ],
+};
+
 const formatTime = (seconds: number) => {
   const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
   const mins = Math.floor(safe / 60)
@@ -32,6 +45,9 @@ const formatTime = (seconds: number) => {
   const secs = (safe % 60).toString().padStart(2, "0");
   return `${mins}:${secs}`;
 };
+
+const uniqueNames = (names: string[]) =>
+  names.filter((name, index) => names.findIndex((n) => n.toLowerCase() === name.toLowerCase()) === index);
 
 export default function HomePage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -42,6 +58,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [sessionMinutes, setSessionMinutes] = useState(45);
+  const [sessionInitial, setSessionInitial] = useState(45 * 60);
   const [sessionRemaining, setSessionRemaining] = useState(0);
   const [sessionRunning, setSessionRunning] = useState(false);
 
@@ -50,13 +67,12 @@ export default function HomePage() {
   const [speakerRunning, setSpeakerRunning] = useState(false);
   const [speakerRole, setSpeakerRole] = useState<Role>("participant");
   const [speakerMinutes, setSpeakerMinutes] = useState(2);
+  const [speakerQueue, setSpeakerQueue] = useState<string[]>([]);
+  const [teamSelection, setTeamSelection] = useState<TeamKey>("ALL");
   const [dragMemberId, setDragMemberId] = useState<string | null>(null);
 
   const filteredMembers = useMemo(
-    () =>
-      members.filter((member) =>
-        member.name.toLowerCase().includes(search.trim().toLowerCase()),
-      ),
+    () => members.filter((member) => member.name.toLowerCase().includes(search.trim().toLowerCase())),
     [members, search],
   );
 
@@ -65,11 +81,27 @@ export default function HomePage() {
     [members, currentSpeakerId],
   );
 
+  const queueMembers = useMemo(
+    () => speakerQueue.map((id) => members.find((m) => m.id === id)).filter((m): m is Member => Boolean(m)),
+    [speakerQueue, members],
+  );
+
   const stats = useMemo(() => {
     const present = members.filter((m) => m.attendance === "present").length;
     const absent = members.filter((m) => m.attendance === "absent").length;
     return { total: members.length, present, absent };
   }, [members]);
+
+  const speakerProgress = useMemo(() => {
+    const limit = currentSpeaker?.speakLimit ?? 120;
+    if (!limit) return 0;
+    return Math.min(100, Math.max(0, ((limit - speakerRemaining) / limit) * 100));
+  }, [currentSpeaker, speakerRemaining]);
+
+  const sessionProgress = useMemo(() => {
+    if (!sessionInitial) return 0;
+    return Math.min(100, Math.max(0, ((sessionInitial - sessionRemaining) / sessionInitial) * 100));
+  }, [sessionInitial, sessionRemaining]);
 
   const syncMembers = async (next: Member[]) => {
     setMembers(next);
@@ -113,6 +145,7 @@ export default function HomePage() {
         return prev - 1;
       });
     }, 1000);
+
     return () => window.clearInterval(timer);
   }, [sessionRunning]);
 
@@ -134,6 +167,7 @@ export default function HomePage() {
         return next;
       });
     }, 1000);
+
     return () => window.clearInterval(timer);
   }, [speakerRunning, currentSpeakerId]);
 
@@ -150,14 +184,68 @@ export default function HomePage() {
     return () => window.clearTimeout(timeout);
   }, [hasLoadedInitialData, members]);
 
+  const makeTeamMembers = (team: TeamKey): Member[] => {
+    const rawNames = team === "ALL" ? Object.values(TEAM_DATA).flat() : TEAM_DATA[team];
+    const names = uniqueNames(rawNames);
+    const now = new Date().toISOString();
+
+    return names.map((name, index) => ({
+      id: crypto.randomUUID(),
+      name,
+      attendance: "unmarked",
+      elapsedTime: 0,
+      role: "participant",
+      speakLimit: ROLE_LIMITS.participant,
+      queueOrder: index + 1,
+      createdAt: now,
+      updatedAt: now,
+    }));
+  };
+
+  const loadSelectedTeam = async () => {
+    const next = makeTeamMembers(teamSelection);
+    setSpeakerQueue([]);
+    setCurrentSpeakerId(null);
+    setSpeakerRunning(false);
+    setSpeakerRemaining(0);
+    await syncMembers(next);
+  };
+
+  const restorePreviousMembers = async () => {
+    await fetch("/api/members/seed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    await loadMembers();
+  };
+
+  const resetSessionState = async () => {
+    setSessionRunning(false);
+    setSessionRemaining(0);
+    setSpeakerRunning(false);
+    setSpeakerRemaining(currentSpeaker ? currentSpeaker.speakLimit : 0);
+    setSpeakerQueue([]);
+
+    const next = members.map((member, index) => ({
+      ...member,
+      attendance: "unmarked" as AttendanceStatus,
+      elapsedTime: 0,
+      queueOrder: index + 1,
+    }));
+    await syncMembers(next);
+  };
+
   const addMember = async () => {
     const safeName = newName.trim();
     if (!safeName || safeName.toLowerCase() === "none") return;
+
     const response = await fetch("/api/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: safeName }),
     });
+
     if (response.ok) {
       const data = (await response.json()) as { member: Member };
       setMembers((prev) => [...prev, data.member]);
@@ -166,15 +254,15 @@ export default function HomePage() {
   };
 
   const updateMember = async (id: string, patch: Partial<Member>) => {
-    const next = members.map((member) =>
-      member.id === id ? { ...member, ...patch } : member,
-    );
+    const next = members.map((member) => (member.id === id ? { ...member, ...patch } : member));
     await syncMembers(next);
   };
 
   const removeMember = async (id: string) => {
     await fetch(`/api/members?id=${id}`, { method: "DELETE" });
     setMembers((prev) => prev.filter((member) => member.id !== id));
+    setSpeakerQueue((prev) => prev.filter((queuedId) => queuedId !== id));
+
     if (currentSpeakerId === id) {
       setCurrentSpeakerId(null);
       setSpeakerRunning(false);
@@ -188,6 +276,7 @@ export default function HomePage() {
     const sourceIndex = next.findIndex((m) => m.id === sourceId);
     const targetIndex = next.findIndex((m) => m.id === targetId);
     if (sourceIndex < 0 || targetIndex < 0) return;
+
     const [moved] = next.splice(sourceIndex, 1);
     next.splice(targetIndex, 0, moved);
     const normalized = next.map((member, index) => ({ ...member, queueOrder: index + 1 }));
@@ -202,11 +291,34 @@ export default function HomePage() {
     setSpeakerRemaining(Math.max(0, member.speakLimit - member.elapsedTime));
   };
 
+  const moveToNextSpeaker = () => {
+    if (speakerQueue.length === 0) return;
+    const nextId = speakerQueue[0];
+    const nextMember = members.find((member) => member.id === nextId);
+    setSpeakerQueue((prev) => prev.slice(1));
+    if (nextMember) {
+      selectSpeaker(nextMember);
+    }
+  };
+
+  const toggleQueue = (memberId: string) => {
+    setSpeakerQueue((prev) =>
+      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId],
+    );
+  };
+
   const applySpeakerConfig = async () => {
     if (!currentSpeaker) return;
     const limit = Math.max(1, speakerMinutes) * 60;
     await updateMember(currentSpeaker.id, { role: speakerRole, speakLimit: limit });
     setSpeakerRemaining(Math.max(0, limit - currentSpeaker.elapsedTime));
+  };
+
+  const startSession = () => {
+    const initial = sessionMinutes * 60;
+    setSessionInitial(initial);
+    setSessionRemaining(initial);
+    setSessionRunning(true);
   };
 
   const downloadCsv = () => {
@@ -222,15 +334,15 @@ export default function HomePage() {
 
     const csv = [
       Object.keys(rows[0] ?? { Name: "", Attendance: "", Role: "", UsedTime: "", Limit: "" }).join(","),
-      ...rows.map((r) => Object.values(r).join(",")),
+      ...rows.map((row) => Object.values(row).join(",")),
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tafsir-session-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `tafsir-session-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
     URL.revokeObjectURL(url);
   };
 
@@ -251,6 +363,7 @@ export default function HomePage() {
             <span>Present: {stats.present}</span>
             <span>Absent: {stats.absent}</span>
           </div>
+
           <div className="inline">
             <input
               value={newName}
@@ -258,16 +371,28 @@ export default function HomePage() {
               onKeyDown={(e) => e.key === "Enter" && void addMember()}
               placeholder="Member name"
             />
-            <button className="primary" onClick={() => void addMember()}>
-              Add
-            </button>
+            <button className="primary" onClick={() => void addMember()}>Add</button>
           </div>
+
+          <div className="inline">
+            <select value={teamSelection} onChange={(e) => setTeamSelection(e.target.value as TeamKey)}>
+              <option value="ALL">ALL Teams</option>
+              <option value="Team A">Team A</option>
+              <option value="Team B">Team B</option>
+              <option value="Team C">Team C</option>
+            </select>
+            <button onClick={() => void loadSelectedTeam()}>Load Team</button>
+            <button onClick={() => void restorePreviousMembers()}>Restore Previous Members</button>
+            <button className="danger" onClick={() => void resetSessionState()}>Reset Session</button>
+          </div>
+
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search members"
           />
           <p className="helpText">Drag members to reorder queue or drop on speaker window.</p>
+
           <ul className="list">
             {loading ? (
               <li className="listItem">Loading...</li>
@@ -283,22 +408,16 @@ export default function HomePage() {
                 >
                   <div>
                     <strong>{member.name}</strong>
-                    <p>
-                      {formatTime(member.elapsedTime)} / {formatTime(member.speakLimit)}
-                    </p>
+                    <p>{formatTime(member.elapsedTime)} / {formatTime(member.speakLimit)}</p>
                   </div>
                   <div className="actions">
                     <button onClick={() => void updateMember(member.id, { attendance: "present" })}>Present</button>
-                    <button
-                      className="accent"
-                      onClick={() => selectSpeaker(member)}
-                    >
-                      Speak
+                    <button className="accent" onClick={() => selectSpeaker(member)}>Speak</button>
+                    <button onClick={() => toggleQueue(member.id)}>
+                      {speakerQueue.includes(member.id) ? "Unqueue" : "Queue"}
                     </button>
                     <button onClick={() => void updateMember(member.id, { attendance: "absent" })}>Absent</button>
-                    <button className="danger" onClick={() => void removeMember(member.id)}>
-                      Remove
-                    </button>
+                    <button className="danger" onClick={() => void removeMember(member.id)}>Remove</button>
                   </div>
                 </li>
               ))
@@ -316,20 +435,15 @@ export default function HomePage() {
           }}
         >
           <h2>Speaker Window</h2>
-          <p className="muted">
-            {currentSpeaker ? `Current: ${currentSpeaker.name}` : "No speaker selected"}
-          </p>
+          <p className="muted">{currentSpeaker ? `Current: ${currentSpeaker.name}` : "No speaker selected"}</p>
           <p className="timer">{formatTime(currentSpeaker ? speakerRemaining : 0)}</p>
-          <p className="muted">
-            Elapsed: {formatTime(currentSpeaker?.elapsedTime ?? 0)} · Limit: {formatTime(currentSpeaker?.speakLimit ?? 120)}
-          </p>
+          <div className="progressTrack">
+            <div className="progressFill" style={{ width: `${speakerProgress}%` }} />
+          </div>
+          <p className="muted">Elapsed: {formatTime(currentSpeaker?.elapsedTime ?? 0)} · Limit: {formatTime(currentSpeaker?.speakLimit ?? 120)}</p>
 
           <div className="speakerConfig">
-            <select
-              value={speakerRole}
-              onChange={(e) => setSpeakerRole(e.target.value as Role)}
-              disabled={!currentSpeaker}
-            >
+            <select value={speakerRole} onChange={(e) => setSpeakerRole(e.target.value as Role)} disabled={!currentSpeaker}>
               <option value="participant">Participant ({ROLE_LIMITS.participant / 60}m)</option>
               <option value="presenter">Presenter ({ROLE_LIMITS.presenter / 60}m)</option>
               <option value="cohost">Co-host ({ROLE_LIMITS.cohost / 60}m)</option>
@@ -342,18 +456,12 @@ export default function HomePage() {
               onChange={(e) => setSpeakerMinutes(Number(e.target.value) || 1)}
               disabled={!currentSpeaker}
             />
-            <button className="primary" onClick={() => void applySpeakerConfig()} disabled={!currentSpeaker}>
-              Update
-            </button>
+            <button className="primary" onClick={() => void applySpeakerConfig()} disabled={!currentSpeaker}>Update</button>
           </div>
 
           <div className="inline">
-            <button className="primary" onClick={() => setSpeakerRunning(true)} disabled={!currentSpeaker}>
-              Start
-            </button>
-            <button onClick={() => setSpeakerRunning(false)} disabled={!currentSpeaker}>
-              Pause
-            </button>
+            <button className="primary" onClick={() => setSpeakerRunning(true)} disabled={!currentSpeaker}>Start</button>
+            <button onClick={() => setSpeakerRunning(false)} disabled={!currentSpeaker}>Pause</button>
             <button
               onClick={() => {
                 if (!currentSpeaker) return;
@@ -365,6 +473,16 @@ export default function HomePage() {
             >
               Reset
             </button>
+            <button onClick={moveToNextSpeaker} disabled={speakerQueue.length === 0}>Next in Queue</button>
+          </div>
+
+          <div>
+            <p className="muted">Queue ({queueMembers.length})</p>
+            <div className="queueWrap">
+              {queueMembers.length === 0 ? <span className="helpText">No one in queue</span> : queueMembers.map((member) => (
+                <span className="queueChip" key={member.id}>{member.name}</span>
+              ))}
+            </div>
           </div>
         </article>
 
@@ -377,17 +495,12 @@ export default function HomePage() {
               value={sessionMinutes}
               onChange={(e) => setSessionMinutes(Number(e.target.value) || 1)}
             />
-            <button
-              className="primary"
-              onClick={() => {
-                setSessionRemaining(sessionMinutes * 60);
-                setSessionRunning(true);
-              }}
-            >
-              Start Session
-            </button>
+            <button className="primary" onClick={startSession}>Start Session</button>
           </div>
           <p className="timer">{formatTime(sessionRemaining)}</p>
+          <div className="progressTrack">
+            <div className="progressFill session" style={{ width: `${sessionProgress}%` }} />
+          </div>
           <div className="inline">
             <button onClick={() => setSessionRunning(false)}>Pause</button>
             <button
@@ -403,9 +516,7 @@ export default function HomePage() {
 
         <article className="card">
           <h2>Summary & Export</h2>
-          <button className="primary" onClick={downloadCsv}>
-            Download CSV
-          </button>
+          <button className="primary" onClick={downloadCsv}>Download CSV</button>
           <ul className="list compact">
             {members.map((member) => (
               <li key={member.id} className="listItem">

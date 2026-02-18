@@ -24,6 +24,19 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 .footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem}.card{background:var(--bg);border:1px solid #e5e7eb;border-radius:14px;padding:.8rem}
 .progress-wrap{margin-top:.5rem;background:#e5e7eb;border-radius:999px;height:10px;overflow:hidden}.progress-bar{height:100%;width:0%;background:#4f46e5;transition:width .3s}
 .flash{animation:flash 1s infinite}@keyframes flash{0%,100%{background:#fee2e2}50%{background:#fecaca}}.queue-item{display:inline-block;background:#eef2ff;border-radius:999px;padding:.2rem .5rem;margin:.15rem;font-size:.75rem}
+.speaker-panel{background:#f3f4f6}
+.speaker-header{font-size:2rem}
+.speaker-config{display:grid;grid-template-columns:2fr 1fr 1.6fr auto;gap:.45rem;margin-bottom:.8rem}
+.speaker-config input,.speaker-config select{min-width:0;background:#f8fafc}
+.speaker-update-btn{background:#c7d2fe;color:#111827;font-weight:600}
+.speaker-timer-shell{background:#e9ebf6;border-radius:14px;padding:1.5rem 1.2rem;text-align:center}
+.speaker-timer-shell .progress-wrap{height:12px;background:#d1d5db}
+.speaker-controls{justify-content:center;margin-top:.6rem}
+.speaker-controls button{background:#dbe4ff;color:#1f2937}
+.speaker-queue-label{margin-top:.8rem;color:#6b7280;font-weight:600}
+.speaker-advanced{margin-top:.7rem}
+.speaker-advanced summary{cursor:pointer;color:#4b5563;font-size:.84rem}
+@media (max-width:720px){.speaker-config{grid-template-columns:1fr 1fr}.speaker-config button{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -72,51 +85,51 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 
 <section class="panel">
 <h1>Speaker Timer</h1>
-<div class="row">
+<div class="speaker-config">
   <select id="speakerSelect"></select>
-  <input id="customMinutes" type="number" min="1" placeholder="Min" style="max-width:90px">
-  <button id="setCustomTime" class="control-btn">Set Time</button>
-</div>
-<div class="row">
-  <select id="roleSelect" style="max-width:145px">
+  <input id="customMinutes" type="number" min="1" placeholder="2" value="2">
+  <select id="roleSelect">
     <option value="participant">Participant (2m)</option>
     <option value="presenter">Presenter (3m)</option>
     <option value="cohost">Co-host (5m)</option>
     <option value="host">Host (10m)</option>
   </select>
-  <button id="applyRoleTime" class="control-btn">Apply Role</button>
+  <button id="updateSpeakerInterface" class="speaker-update-btn">Update</button>
 </div>
-<div class="row">
-  <select id="existingMemberSelect"></select>
-  <select id="specialRoleSelect" style="max-width:140px">
-    <option value="host">Host</option>
-    <option value="cohost">Co-host</option>
-    <option value="presenter">Presenter</option>
-  </select>
-  <button id="assignSpecialRole" class="control-btn">Assign Special Role</button>
-</div>
-<div class="row">
-  <select id="roleConfigSelect" style="max-width:150px">
-    <option value="participant">Participant</option>
-    <option value="presenter">Presenter</option>
-    <option value="cohost">Co-host</option>
-    <option value="host">Host</option>
-  </select>
-  <input id="roleConfigMinutes" type="number" min="1" placeholder="Role minutes" style="max-width:120px">
-  <button id="saveRoleConfig" class="control-btn">Add / Update Role</button>
-</div>
-<div class="timer" id="speakerTimerCard">
+<div class="timer speaker-timer-shell" id="speakerTimerCard">
   <p id="currentSpeaker" class="timer-meta">No one speaking</p>
   <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
   <p id="speakerTimerValue">02:00</p>
-  <div class="row" style="justify-content:center;margin-top:.5rem">
+  <div class="row speaker-controls">
     <button id="startSpeaker" class="control-btn">Start</button>
     <button id="pauseSpeaker" class="control-btn">Pause</button>
     <button id="resetSpeaker" class="control-btn">Reset</button>
   </div>
 </div>
-<div style="margin-top:.6rem" class="small">Queue:</div>
+<div class="speaker-queue-label">Queue:</div>
 <div id="queueBox" style="min-height:28px"></div>
+<details class="speaker-advanced">
+  <summary>Advanced role controls</summary>
+  <div class="row" style="margin-top:.6rem">
+    <select id="existingMemberSelect"></select>
+    <select id="specialRoleSelect" style="max-width:140px">
+      <option value="host">Host</option>
+      <option value="cohost">Co-host</option>
+      <option value="presenter">Presenter</option>
+    </select>
+    <button id="assignSpecialRole" class="control-btn">Assign Special Role</button>
+  </div>
+  <div class="row">
+    <select id="roleConfigSelect" style="max-width:150px">
+      <option value="participant">Participant</option>
+      <option value="presenter">Presenter</option>
+      <option value="cohost">Co-host</option>
+      <option value="host">Host</option>
+    </select>
+    <input id="roleConfigMinutes" type="number" min="1" placeholder="Role minutes" style="max-width:120px">
+    <button id="saveRoleConfig" class="control-btn">Add / Update Role</button>
+  </div>
+</details>
 </section>
 
 <section class="footer-panel">
@@ -271,7 +284,7 @@ document.getElementById("startSession").onclick=startSessionTimer;
 document.getElementById("addBtn").onclick=addMember;
 document.getElementById("nameInput").addEventListener("input",e=>{attendanceSearch=e.target.value;render()});
 document.getElementById("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addMember()}});
-document.getElementById("customMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("setCustomTime").click()}});
+document.getElementById("customMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("updateSpeakerInterface").click()}});
 
 document.getElementById("applyTeamSession").onclick=()=>loadTeamSession(document.getElementById("teamSessionSelect").value);
 document.getElementById("resetDefaultSession").onclick=()=>{document.getElementById("teamSessionSelect").value="ALL";loadTeamSession("ALL")};
@@ -280,9 +293,25 @@ document.getElementById("startSpeaker").onclick=startSpeakerTimer;
 document.getElementById("pauseSpeaker").onclick=()=>clearInterval(speakerInterval);
 document.getElementById("resetSpeaker").onclick=()=>{clearInterval(speakerInterval);const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(!s)return;s.time=0;speakerTime=s.speakLimit;speakerInitial=s.speakLimit;speakerTimerDisplay.textContent=format(speakerTime);saveState();render()};
 
-document.getElementById("setCustomTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const min=Number(document.getElementById("customMinutes").value);if(!id||!min)return;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.speakLimit=min*60;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
-
-document.getElementById("applyRoleTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const role=document.getElementById("roleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||120;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
+document.getElementById("updateSpeakerInterface").onclick=()=>{
+  const id=document.getElementById("speakerSelect").value;
+  const role=document.getElementById("roleSelect").value;
+  const min=Number(document.getElementById("customMinutes").value);
+  const m=members.find(x=>String(x.id)===String(id));
+  if(!m)return;
+  const chosenSeconds=min>0?min*60:(ROLE_LIMITS[role]||120);
+  m.role=role;
+  m.speakLimit=chosenSeconds;
+  currentSpeakerId=m.id;
+  clearInterval(speakerInterval);
+  speakerTime=Math.max(0,m.speakLimit-m.time);
+  speakerInitial=Math.max(1,m.speakLimit);
+  speakerTimerDisplay.textContent=format(speakerTime);
+  currentSpeakerDisplay.textContent="Current: "+m.name;
+  updateProgress();
+  saveState();
+  render();
+};
 
 document.getElementById("assignSpecialRole").onclick=()=>{const id=document.getElementById("existingMemberSelect").value;const role=document.getElementById("specialRoleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||m.speakLimit;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
 

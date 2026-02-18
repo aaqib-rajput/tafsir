@@ -354,14 +354,50 @@ export default function HomePage() {
 
   return (
     <main className="container">
-      <header className="titleRow">
-        <h1>Tafsir Session Manager</h1>
-        <p>Vercel-ready full-stack app with persistent members and smart speaker flow.</p>
-      </header>
-
       {error && <p className="errorText">{error}</p>}
 
       <section className="grid">
+        <article className="card compactCard">
+          <h2>Session Timer</h2>
+          <div className="inline">
+            <input
+              type="number"
+              min={1}
+              value={sessionMinutes}
+              onChange={(e) => setSessionMinutes(Number(e.target.value) || 1)}
+            />
+            <button className="primary" onClick={startSession}>Start Session</button>
+          </div>
+          <p className="timer">{formatTime(sessionRemaining)}</p>
+          <div className="progressTrack">
+            <div className="progressFill session" style={{ width: `${sessionProgress}%` }} />
+          </div>
+          <div className="inline">
+            <button onClick={() => setSessionRunning(false)}>Pause</button>
+            <button
+              onClick={() => {
+                setSessionRunning(false);
+                setSessionRemaining(0);
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        </article>
+
+        <article className="card compactCard">
+          <h2>Summary & Export</h2>
+          <button className="primary" onClick={downloadCsv}>Download CSV</button>
+          <ul className="list compact">
+            {members.map((member) => (
+              <li key={member.id} className="listItem">
+                <span>{member.name}</span>
+                <span>{formatTime(member.elapsedTime)}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+
         <article className="card attendanceCard">
           <h2>Attendance</h2>
           <div className="stats">
@@ -482,47 +518,6 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-        </article>
-
-        <article className="card compactCard">
-          <h2>Session Timer</h2>
-          <div className="inline">
-            <input
-              type="number"
-              min={1}
-              value={sessionMinutes}
-              onChange={(e) => setSessionMinutes(Number(e.target.value) || 1)}
-            />
-            <button className="primary" onClick={startSession}>Start Session</button>
-          </div>
-          <p className="timer">{formatTime(sessionRemaining)}</p>
-          <div className="progressTrack">
-            <div className="progressFill session" style={{ width: `${sessionProgress}%` }} />
-          </div>
-          <div className="inline">
-            <button onClick={() => setSessionRunning(false)}>Pause</button>
-            <button
-              onClick={() => {
-                setSessionRunning(false);
-                setSessionRemaining(0);
-              }}
-            >
-              Reset
-            </button>
-          </div>
-        </article>
-
-        <article className="card compactCard">
-          <h2>Summary & Export</h2>
-          <button className="primary" onClick={downloadCsv}>Download CSV</button>
-          <ul className="list compact">
-            {members.map((member) => (
-              <li key={member.id} className="listItem">
-                <span>{member.name}</span>
-                <span>{formatTime(member.elapsedTime)}</span>
-              </li>
-            ))}
-          </ul>
         </article>
       </section>
     </main>

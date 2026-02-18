@@ -147,9 +147,8 @@ li.speaking{border:2px solid var(--primary)}
 <h1>Speaker Timer</h1>
 
 <div class="row">
-  <select id="speakerSelect"></select>
   <input id="customMinutes" type="number" min="1" placeholder="Min" style="max-width:90px">
-  <button id="setCustomTime" class="control-btn">Set Time</button>
+  <button id="setCustomTime" class="control-btn">Set Current Speaker Time</button>
 </div>
 
 <div class="row">
@@ -322,6 +321,11 @@ const currentSpeakerDisplay=document.getElementById("currentSpeaker");
 
 function format(sec){
   return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
+}
+
+function getCurrentSpeakerMember(){
+  if(!currentSpeakerId) return null;
+  return members.find(m=>String(m.id)===String(currentSpeakerId)) || null;
 }
 
 // LOAD DEFAULT MEMBERS (only if no saved state)
@@ -594,10 +598,9 @@ document.getElementById("resetSpeaker").onclick=()=>{
 };
 
 document.getElementById("setCustomTime").onclick=()=>{
-  const id=document.getElementById("speakerSelect").value;
   const min=Number(document.getElementById("customMinutes").value);
-  if(!id || !min) return;
-  const m=members.find(x=>String(x.id)===String(id));
+  if(!min) return;
+  const m=getCurrentSpeakerMember();
   if(!m) return;
   m.speakLimit=min*60;
   if(currentSpeakerId===m.id){
@@ -676,9 +679,8 @@ updateProgress();
 
 
 document.getElementById("applyRoleTime").onclick=()=>{
-  const id=document.getElementById("speakerSelect").value;
   const role=document.getElementById("roleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
+  const m=getCurrentSpeakerMember();
   if(!m) return;
   m.role=role;
   m.speakLimit=ROLE_LIMITS[role]||120;
@@ -1155,15 +1157,7 @@ updateProgress();};
   saveState();
   refreshExistingMemberDropdown();
 
-  const select=document.getElementById("speakerSelect");
-  select.innerHTML="";
   renderQueue();
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=String(m.id);
-    opt.textContent=`${m.name} (${format(m.speakLimit)})`;
-    select.appendChild(opt);
-  });
 }
 
 

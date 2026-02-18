@@ -74,54 +74,56 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 <h1>Speaker Timer</h1>
 <div class="row">
   <select id="speakerSelect"></select>
-  <input id="customMinutes" type="number" min="1" placeholder="Min" style="max-width:90px">
-  <button id="setCustomTime" class="control-btn">Set Time</button>
-</div>
-<div class="row">
-  <select id="roleSelect" style="max-width:145px">
+  <input id="customMinutes" type="number" min="1" placeholder="Minutes" style="max-width:110px">
+  <select id="roleSelect" style="max-width:170px">
     <option value="participant">Participant (2m)</option>
     <option value="presenter">Presenter (3m)</option>
     <option value="cohost">Co-host (5m)</option>
     <option value="host">Host (10m)</option>
   </select>
-  <button id="applyRoleTime" class="control-btn">Apply Role</button>
-</div>
-<div class="row">
-  <select id="existingMemberSelect"></select>
-  <select id="specialRoleSelect" style="max-width:140px">
-    <option value="host">Host</option>
-    <option value="cohost">Co-host</option>
-    <option value="presenter">Presenter</option>
-  </select>
-  <button id="assignSpecialRole" class="control-btn">Assign Special Role</button>
-</div>
-<div class="row">
-  <select id="roleConfigSelect" style="max-width:150px">
-    <option value="participant">Participant</option>
-    <option value="presenter">Presenter</option>
-    <option value="cohost">Co-host</option>
-    <option value="host">Host</option>
-  </select>
-  <input id="roleConfigMinutes" type="number" min="1" placeholder="Role minutes" style="max-width:120px">
-  <button id="saveRoleConfig" class="control-btn">Add / Update Role</button>
+  <button id="updateSpeakerSettings" class="control-btn">Update</button>
 </div>
 <div class="timer" id="speakerTimerCard">
   <p id="currentSpeaker" class="timer-meta">No one speaking</p>
   <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
   <p id="speakerTimerValue">02:00</p>
-  <div class="row" style="justify-content:center;margin-top:.5rem">
-    <button id="startSpeaker" class="control-btn">Start</button>
-    <button id="pauseSpeaker" class="control-btn">Pause</button>
-    <button id="resetSpeaker" class="control-btn">Reset</button>
-  </div>
 </div>
-<div style="margin-top:.6rem" class="small">Queue:</div>
-<div id="queueBox" style="min-height:28px"></div>
 </section>
 
 <section class="footer-panel">
   <h1 style="margin-bottom:.7rem">Teams (Default Members)</h1>
   <div class="footer-grid" id="teamCards"></div>
+
+  <div class="card" style="margin-top:.8rem">
+    <strong>Team Window Controls</strong>
+    <div class="row" style="margin-top:.6rem">
+      <select id="existingMemberSelect"></select>
+      <select id="specialRoleSelect" style="max-width:140px">
+        <option value="host">Host</option>
+        <option value="cohost">Co-host</option>
+        <option value="presenter">Presenter</option>
+      </select>
+      <button id="assignSpecialRole" class="control-btn">Assign Special Role</button>
+    </div>
+    <div class="row">
+      <select id="roleConfigSelect" style="max-width:150px">
+        <option value="participant">Participant</option>
+        <option value="presenter">Presenter</option>
+        <option value="cohost">Co-host</option>
+        <option value="host">Host</option>
+      </select>
+      <input id="roleConfigMinutes" type="number" min="1" placeholder="Role minutes" style="max-width:120px">
+      <button id="saveRoleConfig" class="control-btn">Add / Update Role</button>
+    </div>
+    <div class="row">
+      <button id="startSpeaker" class="control-btn">Start</button>
+      <button id="pauseSpeaker" class="control-btn">Pause</button>
+      <button id="resetSpeaker" class="control-btn">Reset</button>
+    </div>
+    <div style="margin-top:.2rem" class="small">Queue:</div>
+    <div id="queueBox" style="min-height:28px"></div>
+  </div>
+
   <p class="small" style="margin-top:.6rem">⚙️ NOTE: Neeche TEAM_DATA mein apni 3 teams ke members daal dein. Page khulte hi automatically load ho jayenge.</p>
 </section>
 </main>
@@ -271,7 +273,7 @@ document.getElementById("startSession").onclick=startSessionTimer;
 document.getElementById("addBtn").onclick=addMember;
 document.getElementById("nameInput").addEventListener("input",e=>{attendanceSearch=e.target.value;render()});
 document.getElementById("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addMember()}});
-document.getElementById("customMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("setCustomTime").click()}});
+document.getElementById("customMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("updateSpeakerSettings").click()}});
 
 document.getElementById("applyTeamSession").onclick=()=>loadTeamSession(document.getElementById("teamSessionSelect").value);
 document.getElementById("resetDefaultSession").onclick=()=>{document.getElementById("teamSessionSelect").value="ALL";loadTeamSession("ALL")};
@@ -280,9 +282,7 @@ document.getElementById("startSpeaker").onclick=startSpeakerTimer;
 document.getElementById("pauseSpeaker").onclick=()=>clearInterval(speakerInterval);
 document.getElementById("resetSpeaker").onclick=()=>{clearInterval(speakerInterval);const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(!s)return;s.time=0;speakerTime=s.speakLimit;speakerInitial=s.speakLimit;speakerTimerDisplay.textContent=format(speakerTime);saveState();render()};
 
-document.getElementById("setCustomTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const min=Number(document.getElementById("customMinutes").value);if(!id||!min)return;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.speakLimit=min*60;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
-
-document.getElementById("applyRoleTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const role=document.getElementById("roleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||120;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
+document.getElementById("updateSpeakerSettings").onclick=()=>{const id=document.getElementById("speakerSelect").value;const min=Number(document.getElementById("customMinutes").value);const role=document.getElementById("roleSelect").value;if(!id)return;const m=members.find(x=>String(x.id)===String(id));if(!m)return;if(min)m.speakLimit=min*60;m.role=role;m.speakLimit=min?m.speakLimit:(ROLE_LIMITS[role]||120);if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
 
 document.getElementById("assignSpecialRole").onclick=()=>{const id=document.getElementById("existingMemberSelect").value;const role=document.getElementById("specialRoleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||m.speakLimit;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
 

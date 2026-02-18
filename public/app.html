@@ -74,26 +74,9 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 <h1>Speaker Timer</h1>
 <div class="row">
   <select id="speakerSelect"></select>
-  <input id="customMinutes" type="number" min="1" placeholder="Min" style="max-width:90px">
-  <button id="setCustomTime" class="control-btn">Set Time</button>
-</div>
-<div class="row">
-  <select id="roleSelect" style="max-width:145px">
-    <option value="participant">Participant (2m)</option>
-    <option value="presenter">Presenter (3m)</option>
-    <option value="cohost">Co-host (5m)</option>
-    <option value="host">Host (10m)</option>
-  </select>
-  <button id="applyRoleTime" class="control-btn">Apply Role</button>
-</div>
-<div class="row">
-  <select id="existingMemberSelect"></select>
-  <select id="specialRoleSelect" style="max-width:140px">
-    <option value="host">Host</option>
-    <option value="cohost">Co-host</option>
-    <option value="presenter">Presenter</option>
-  </select>
-  <button id="assignSpecialRole" class="control-btn">Assign Special Role</button>
+  <input id="speakerRoleInput" type="text" placeholder="Role" style="max-width:140px">
+  <input id="speakerRoleMinutes" type="number" min="1" placeholder="Role minutes" style="max-width:120px">
+  <button id="addOrUpdateSpeakerRole" class="control-btn">Add / Update Role</button>
 </div>
 <div class="row">
   <select id="roleConfigSelect" style="max-width:150px">
@@ -106,7 +89,7 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
   <button id="saveRoleConfig" class="control-btn">Add / Update Role</button>
 </div>
 <div class="timer" id="speakerTimerCard">
-  <p id="currentSpeaker" class="timer-meta">No one speaking</p>
+  <p id="currentSpeaker" class="timer-meta">Current: null</p>
   <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
   <p id="speakerTimerValue">02:00</p>
   <div class="row" style="justify-content:center;margin-top:.5rem">
@@ -141,9 +124,22 @@ function format(sec){return String(Math.floor(sec/60)).padStart(2,"0")+":"+Strin
 function saveState(){localStorage.setItem("tsm_v3_members",JSON.stringify(members))}
 function saveRoleConfig(){localStorage.setItem("tsm_v3_roles",JSON.stringify(ROLE_LIMITS))}
 
-function refreshRoleLabels(){
-  const sel=document.getElementById("roleSelect");
-  [...sel.options].forEach(opt=>{const key=opt.value;const mins=Math.round((ROLE_LIMITS[key]||120)/60);const label=key==="cohost"?"Co-host":key.charAt(0).toUpperCase()+key.slice(1);opt.textContent=`${label} (${mins}m)`})
+function syncSpeakerControls(){
+  const speakerSelect=document.getElementById("speakerSelect");
+  const roleInput=document.getElementById("speakerRoleInput");
+  const roleMinutesInput=document.getElementById("speakerRoleMinutes");
+  const current=members.find(m=>String(m.id)===String(currentSpeakerId));
+  if(current){
+    speakerSelect.value=String(current.id);
+    roleInput.value=current.role||"";
+    roleMinutesInput.value=Math.round((current.speakLimit||120)/60);
+    currentSpeakerDisplay.textContent="Current: "+current.name;
+    return;
+  }
+  speakerSelect.value="";
+  roleInput.value="";
+  roleMinutesInput.value="";
+  currentSpeakerDisplay.textContent="Current: null";
 }
 
 function sortMembersByRole(){const roleOrder={host:1,cohost:2,presenter:3,participant:4};members.sort((a,b)=>(roleOrder[a.role]||5)-(roleOrder[b.role]||5))}
@@ -163,11 +159,13 @@ function renderQueue(){
 
 function refreshMemberDropdowns(){
   const speakerSelect=document.getElementById("speakerSelect");
-  const existingMemberSelect=document.getElementById("existingMemberSelect");
-  speakerSelect.innerHTML="";existingMemberSelect.innerHTML="";
+  speakerSelect.innerHTML="";
+  const emptyOption=document.createElement("option");
+  emptyOption.value="";
+  emptyOption.textContent="null";
+  speakerSelect.appendChild(emptyOption);
   members.forEach(m=>{
     const s=document.createElement("option");s.value=m.id;s.textContent=m.name;speakerSelect.appendChild(s);
-    const e=document.createElement("option");e.value=m.id;e.textContent=`${m.name} (${m.role})`;existingMemberSelect.appendChild(e);
   })
 }
 
@@ -192,7 +190,7 @@ function loadTeamSession(teamName){
   clearInterval(speakerInterval);currentSpeakerId=null;speakerQueue=[];
   const names=teamName==="ALL"?Object.values(TEAM_DATA).flat():(TEAM_DATA[teamName]||[]);
   members=names.map(name=>({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"participant",speakLimit:ROLE_LIMITS.participant}));
-  speakerTime=ROLE_LIMITS.participant;speakerInitial=ROLE_LIMITS.participant;speakerTimerDisplay.textContent=format(speakerTime);currentSpeakerDisplay.textContent="No one speaking";
+  speakerTime=ROLE_LIMITS.participant;speakerInitial=ROLE_LIMITS.participant;speakerTimerDisplay.textContent=format(speakerTime);currentSpeakerDisplay.textContent="Current: null";
   saveState();render();
 }
 
@@ -225,7 +223,7 @@ function startSpeakerTimer(){
       if(speakerQueue.length){
         const nextId=speakerQueue.shift();
         const nm=members.find(m=>String(m.id)===String(nextId));
-        if(nm){currentSpeakerId=nm.id;speakerTime=Math.max(0,nm.speakLimit-nm.time);speakerInitial=Math.max(1,nm.speakLimit);currentSpeakerDisplay.textContent="Current: "+nm.name;setTimeout(startSpeakerTimer,300)}
+        if(nm){currentSpeakerId=nm.id;speakerTime=Math.max(0,nm.speakLimit-nm.time);speakerInitial=Math.max(1,nm.speakLimit);syncSpeakerControls();setTimeout(startSpeakerTimer,300)}
       }
     }
     speakerTimerDisplay.textContent=format(speakerTime);updateProgress();saveState();render();
@@ -251,10 +249,10 @@ function render(){
 
     const p=document.createElement("button");p.textContent="Present";p.className="present-btn";p.onclick=()=>{m.attendance="present";saveState();render()};
     const s=document.createElement("button");s.textContent="Speak";s.className="speak-btn";if(m.attendance==="absent"){s.disabled=true;s.style.opacity=.4}
-    s.onclick=()=>{if(m.attendance==="absent")return;clearInterval(speakerInterval);currentSpeakerId=m.id;speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime);currentSpeakerDisplay.textContent="Current: "+m.name;updateProgress();startSpeakerTimer();render()};
+    s.onclick=()=>{if(m.attendance==="absent")return;clearInterval(speakerInterval);currentSpeakerId=m.id;speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime);syncSpeakerControls();updateProgress();startSpeakerTimer();render()};
     const q=document.createElement("button");q.textContent="Queue";q.className="control-btn";q.onclick=()=>{if(!speakerQueue.includes(m.id)&&String(m.id)!==String(currentSpeakerId))speakerQueue.push(m.id);renderQueue()};
     const a=document.createElement("button");a.textContent="Absent";a.className="absent-btn";a.onclick=()=>{m.attendance="absent";saveState();render()};
-    const r=document.createElement("button");r.textContent="Remove";r.className="remove-btn";r.onclick=()=>{members=members.filter(x=>String(x.id)!==String(m.id));speakerQueue=speakerQueue.filter(id=>String(id)!==String(m.id));if(String(currentSpeakerId)===String(m.id)){currentSpeakerId=null;clearInterval(speakerInterval);currentSpeakerDisplay.textContent="No one speaking"}saveState();render()};
+    const r=document.createElement("button");r.textContent="Remove";r.className="remove-btn";r.onclick=()=>{members=members.filter(x=>String(x.id)!==String(m.id));speakerQueue=speakerQueue.filter(id=>String(id)!==String(m.id));if(String(currentSpeakerId)===String(m.id)){currentSpeakerId=null;clearInterval(speakerInterval)}saveState();render()};
 
     actions.append(p,s,q,a,r);li.append(name,actions);attendanceList.appendChild(li);
 
@@ -264,15 +262,13 @@ function render(){
   document.getElementById("totalCount").textContent=String(members.length);
   document.getElementById("presentCount").textContent=String(members.filter(m=>m.attendance==="present").length);
   document.getElementById("absentCount").textContent=String(members.filter(m=>m.attendance==="absent").length);
-  refreshMemberDropdowns();renderQueue();refreshRoleLabels();updateProgress();
+  refreshMemberDropdowns();renderQueue();syncSpeakerControls();updateProgress();
 }
 
 document.getElementById("startSession").onclick=startSessionTimer;
 document.getElementById("addBtn").onclick=addMember;
 document.getElementById("nameInput").addEventListener("input",e=>{attendanceSearch=e.target.value;render()});
 document.getElementById("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addMember()}});
-document.getElementById("customMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("setCustomTime").click()}});
-
 document.getElementById("applyTeamSession").onclick=()=>loadTeamSession(document.getElementById("teamSessionSelect").value);
 document.getElementById("resetDefaultSession").onclick=()=>{document.getElementById("teamSessionSelect").value="ALL";loadTeamSession("ALL")};
 
@@ -280,11 +276,40 @@ document.getElementById("startSpeaker").onclick=startSpeakerTimer;
 document.getElementById("pauseSpeaker").onclick=()=>clearInterval(speakerInterval);
 document.getElementById("resetSpeaker").onclick=()=>{clearInterval(speakerInterval);const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(!s)return;s.time=0;speakerTime=s.speakLimit;speakerInitial=s.speakLimit;speakerTimerDisplay.textContent=format(speakerTime);saveState();render()};
 
-document.getElementById("setCustomTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const min=Number(document.getElementById("customMinutes").value);if(!id||!min)return;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.speakLimit=min*60;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
+document.getElementById("speakerSelect").onchange=e=>{
+  const id=e.target.value;
+  if(!id){
+    if(!currentSpeakerId){syncSpeakerControls()}
+    return;
+  }
+  const m=members.find(x=>String(x.id)===String(id));
+  if(!m)return;
+  document.getElementById("speakerRoleInput").value=m.role||"";
+  document.getElementById("speakerRoleMinutes").value=Math.round((m.speakLimit||120)/60);
+};
 
-document.getElementById("applyRoleTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const role=document.getElementById("roleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||120;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
+document.getElementById("speakerRoleMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("addOrUpdateSpeakerRole").click()}});
 
-document.getElementById("assignSpecialRole").onclick=()=>{const id=document.getElementById("existingMemberSelect").value;const role=document.getElementById("specialRoleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||m.speakLimit;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
+document.getElementById("addOrUpdateSpeakerRole").onclick=()=>{
+  const selectedId=document.getElementById("speakerSelect").value;
+  const targetId=selectedId||currentSpeakerId;
+  const role=(document.getElementById("speakerRoleInput").value||"").trim().toLowerCase();
+  const mins=Number(document.getElementById("speakerRoleMinutes").value);
+  if(!targetId||!role||!mins)return;
+  const m=members.find(x=>String(x.id)===String(targetId));
+  if(!m)return;
+  m.role=role;
+  m.speakLimit=mins*60;
+  ROLE_LIMITS[role]=mins*60;
+  if(String(currentSpeakerId)===String(m.id)){
+    speakerTime=Math.max(0,m.speakLimit-m.time);
+    speakerInitial=Math.max(1,m.speakLimit);
+    speakerTimerDisplay.textContent=format(speakerTime);
+  }
+  saveRoleConfig();
+  saveState();
+  render();
+};
 
 document.getElementById("saveRoleConfig").onclick=()=>{const role=document.getElementById("roleConfigSelect").value;const mins=Number(document.getElementById("roleConfigMinutes").value);if(!role||!mins)return;ROLE_LIMITS[role]=mins*60;members.forEach(m=>{if((m.role||"participant")===role){m.speakLimit=ROLE_LIMITS[role]}});if(currentSpeakerId){const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(s){speakerTime=Math.max(0,s.speakLimit-s.time);speakerInitial=Math.max(1,s.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}}saveRoleConfig();saveState();render()};
 document.getElementById("roleConfigMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("saveRoleConfig").click()}});

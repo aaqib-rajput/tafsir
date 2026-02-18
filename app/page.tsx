@@ -18,7 +18,7 @@ type Member = {
   updatedAt?: string;
 };
 
-const ROLE_LIMITS: Record<Role, number> = {
+const DEFAULT_ROLE_LIMITS: Record<Role, number> = {
   participant: 120,
   presenter: 180,
   cohost: 300,
@@ -67,6 +67,7 @@ export default function HomePage() {
   const [speakerRole, setSpeakerRole] = useState<Role>("participant");
   const [speakerMinutes, setSpeakerMinutes] = useState(2);
   const [speakerQueue, setSpeakerQueue] = useState<string[]>([]);
+  const [roleLimits, setRoleLimits] = useState<Record<Role, number>>(DEFAULT_ROLE_LIMITS);
   const [teamSelection, setTeamSelection] = useState<TeamKey>("ALL");
   const [dragMemberId, setDragMemberId] = useState<string | null>(null);
 
@@ -194,7 +195,7 @@ export default function HomePage() {
       attendance: "unmarked",
       elapsedTime: 0,
       role: "participant",
-      speakLimit: ROLE_LIMITS.participant,
+      speakLimit: roleLimits.participant,
       queueOrder: index + 1,
       createdAt: now,
       updatedAt: now,
@@ -314,10 +315,25 @@ export default function HomePage() {
   };
 
   const applySpeakerConfig = async () => {
-    if (!currentSpeaker) return;
     const limit = Math.max(1, speakerMinutes) * 60;
-    await updateMember(currentSpeaker.id, { role: speakerRole, speakLimit: limit });
-    setSpeakerRemaining(Math.max(0, limit - currentSpeaker.elapsedTime));
+
+    setRoleLimits((prev) => ({ ...prev, [speakerRole]: limit }));
+
+    const nextMembers = members.map((member) => {
+      if (currentSpeaker && member.id === currentSpeaker.id) {
+        return { ...member, role: speakerRole, speakLimit: limit };
+      }
+      if (!currentSpeaker && member.role === speakerRole) {
+        return { ...member, speakLimit: limit };
+      }
+      return member;
+    });
+
+    await syncMembers(nextMembers);
+
+    if (currentSpeaker) {
+      setSpeakerRemaining(Math.max(0, limit - currentSpeaker.elapsedTime));
+    }
   };
 
   const startSession = () => {
@@ -477,20 +493,19 @@ export default function HomePage() {
           <p className="muted">Elapsed: {formatTime(currentSpeaker?.elapsedTime ?? 0)} · Limit: {formatTime(currentSpeaker?.speakLimit ?? 120)}</p>
 
           <div className="speakerConfig">
-            <select value={speakerRole} onChange={(e) => setSpeakerRole(e.target.value as Role)} disabled={!currentSpeaker}>
-              <option value="participant">Participant ({ROLE_LIMITS.participant / 60}m)</option>
-              <option value="presenter">Presenter ({ROLE_LIMITS.presenter / 60}m)</option>
-              <option value="cohost">Co-host ({ROLE_LIMITS.cohost / 60}m)</option>
-              <option value="host">Host ({ROLE_LIMITS.host / 60}m)</option>
+            <select value={speakerRole} onChange={(e) => setSpeakerRole(e.target.value as Role)}>
+              <option value="participant">Participant ({roleLimits.participant / 60}m)</option>
+              <option value="presenter">Presenter ({roleLimits.presenter / 60}m)</option>
+              <option value="cohost">Co-host ({roleLimits.cohost / 60}m)</option>
+              <option value="host">Host ({roleLimits.host / 60}m)</option>
             </select>
             <input
               type="number"
               min={1}
               value={speakerMinutes}
               onChange={(e) => setSpeakerMinutes(Number(e.target.value) || 1)}
-              disabled={!currentSpeaker}
             />
-            <button className="primary" onClick={() => void applySpeakerConfig()} disabled={!currentSpeaker}>Update</button>
+            <button className="primary" onClick={() => void applySpeakerConfig()}>Update</button>
           </div>
 
           <div className="inline">

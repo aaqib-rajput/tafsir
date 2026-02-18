@@ -87,19 +87,20 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 <h1>Speaker Timer</h1>
 <div class="speaker-config">
   <select id="speakerSelect"></select>
-  <input id="customMinutes" type="number" min="1" placeholder="2" value="2">
+  <input id="customMinutes" type="number" min="0" placeholder="0" value="0">
   <select id="roleSelect">
-    <option value="participant">Participant (2m)</option>
-    <option value="presenter">Presenter (3m)</option>
-    <option value="cohost">Co-host (5m)</option>
-    <option value="host">Host (10m)</option>
+    <option value="none">None</option>
+    <option value="participant">Participant</option>
+    <option value="presenter">Presenter</option>
+    <option value="cohost">Co-host</option>
+    <option value="host">Host</option>
   </select>
   <button id="updateSpeakerInterface" class="speaker-update-btn">Update</button>
 </div>
 <div class="timer speaker-timer-shell" id="speakerTimerCard">
   <p id="currentSpeaker" class="timer-meta">No one speaking</p>
   <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
-  <p id="speakerTimerValue">02:00</p>
+  <p id="speakerTimerValue">00:00</p>
   <div class="row speaker-controls">
     <button id="startSpeaker" class="control-btn">Start</button>
     <button id="pauseSpeaker" class="control-btn">Pause</button>
@@ -141,9 +142,9 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 
 <script>
 const TEAM_DATA={"Team A":["Nadeem","Zoya","Rohma Zil Arsh","Sameen Zara","Ahmad Adrees","Mubashir Ali","Ali Hanzala","Ammara","Noor Ayesha","Masaud Khan","Khushbakht Tausif Hashmi","Wasif","Romana Daim","Ahsan Raza","Amina Khan","Wania","Shahid Ameer Hamza","Afsana Yaqoob","Safa Shahid","Dr. Rimsha"],"Team B":["Aqib","Khadija","Malaika Imran","Hasnat Fatima","Abdullah Shahbaz","Rimsha Kousar","Attaullah","Sidra Sahir","Maryam Iftikhar","Saleha","Huraima","Sidra Bashir","Usba","Shaheer","Zunaira Rashid","Bilal","Abdur Rehman Khan","Abdullah Chaudhry","Azhar Mehmood","Tahira","Nasseb Ullah","Fiza Urooj","Sadia Wajahat","Muhammad Ibrahim","Rabia Naqi","Zamurrad"],"Team C":["Saboor","Kamran","Sidra Younas","Ishrat Fatima","Saddam Sharif","Faiza","Rehana","Talha Mushtaq","Azeem Aourangzaib","Mrs Azeem Aourangzaib","Muhammad Uzair Rashid","Fahad Khan","Arsalan G14","Arsalan G07","Majid Khan","Abdullah Khan","Kashif Noor","Zain ul Abideen","Farhan Afzal","Amna Fazahil","Bilal Shahid","Hina Yousuf"]};
-const DEFAULT_ROLE_LIMITS={participant:120,presenter:180,cohost:300,host:600};
+const DEFAULT_ROLE_LIMITS={none:0,participant:120,presenter:180,cohost:300,host:600};
 let ROLE_LIMITS={...DEFAULT_ROLE_LIMITS};
-let members=[],speakerQueue=[],currentSpeakerId=null,speakerInterval=null,speakerTime=120,speakerInitial=120,sessionInterval=null,sessionTime=0,attendanceSearch="";
+let members=[],speakerQueue=[],currentSpeakerId=null,speakerInterval=null,speakerTime=0,speakerInitial=0,sessionInterval=null,sessionTime=0,attendanceSearch="";
 
 const attendanceList=document.getElementById("attendanceList");
 const summaryList=document.getElementById("summaryList");
@@ -154,9 +155,16 @@ function format(sec){return String(Math.floor(sec/60)).padStart(2,"0")+":"+Strin
 function saveState(){localStorage.setItem("tsm_v3_members",JSON.stringify(members))}
 function saveRoleConfig(){localStorage.setItem("tsm_v3_roles",JSON.stringify(ROLE_LIMITS))}
 
+function roleLabel(role){
+  if(role==="cohost")return "Co-host";
+  if(role==="none")return "None";
+  const normalized=String(role||"none");
+  return normalized.charAt(0).toUpperCase()+normalized.slice(1);
+}
+
 function refreshRoleLabels(){
   const sel=document.getElementById("roleSelect");
-  [...sel.options].forEach(opt=>{const key=opt.value;const mins=Math.round((ROLE_LIMITS[key]||120)/60);const label=key==="cohost"?"Co-host":key.charAt(0).toUpperCase()+key.slice(1);opt.textContent=`${label} (${mins}m)`})
+  [...sel.options].forEach(opt=>{opt.textContent=roleLabel(opt.value)})
 }
 
 function sortMembersByRole(){const roleOrder={host:1,cohost:2,presenter:3,participant:4};members.sort((a,b)=>(roleOrder[a.role]||5)-(roleOrder[b.role]||5))}
@@ -174,14 +182,33 @@ function renderQueue(){
   speakerQueue.forEach(id=>{const m=members.find(x=>String(x.id)===String(id));if(!m)return;const s=document.createElement("span");s.className="queue-item";s.textContent=m.name;q.appendChild(s)})
 }
 
+function syncSpeakerConfigFromSelection(){
+  const selectedId=document.getElementById("speakerSelect").value;
+  if(!selectedId){
+    document.getElementById("customMinutes").value="0";
+    document.getElementById("roleSelect").value="none";
+    return;
+  }
+  const m=members.find(x=>String(x.id)===String(selectedId));
+  if(!m)return;
+  document.getElementById("customMinutes").value=String(Math.round((m.speakLimit||0)/60));
+  document.getElementById("roleSelect").value=m.role||"none";
+}
+
 function refreshMemberDropdowns(){
   const speakerSelect=document.getElementById("speakerSelect");
   const existingMemberSelect=document.getElementById("existingMemberSelect");
+  const previousSpeaker=speakerSelect.value;
+  const previousAdvanced=existingMemberSelect.value;
   speakerSelect.innerHTML="";existingMemberSelect.innerHTML="";
+  const noneOption=document.createElement("option");noneOption.value="";noneOption.textContent="None";speakerSelect.appendChild(noneOption);
   members.forEach(m=>{
     const s=document.createElement("option");s.value=m.id;s.textContent=m.name;speakerSelect.appendChild(s);
-    const e=document.createElement("option");e.value=m.id;e.textContent=`${m.name} (${m.role})`;existingMemberSelect.appendChild(e);
+    const e=document.createElement("option");e.value=m.id;e.textContent=`${m.name} (${roleLabel(m.role||"none")})`;existingMemberSelect.appendChild(e);
   })
+  speakerSelect.value=[...speakerSelect.options].some(opt=>opt.value===String(previousSpeaker))?String(previousSpeaker):String(currentSpeakerId||"");
+  existingMemberSelect.value=[...existingMemberSelect.options].some(opt=>opt.value===String(previousAdvanced))?String(previousAdvanced):existingMemberSelect.value;
+  syncSpeakerConfigFromSelection();
 }
 
 function loadInitialData(){
@@ -190,9 +217,9 @@ function loadInitialData(){
   try{const data=JSON.parse(localStorage.getItem("tsm_v3_members")||"null");if(Array.isArray(data)&&data.length){members=data;loaded=true}}catch(e){}
   if(!loaded){
     const names=[...new Set(Object.values(TEAM_DATA).flat().map(x=>String(x||"").trim()).filter(Boolean))];
-    names.forEach(name=>members.push({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"participant",speakLimit:ROLE_LIMITS.participant}))
+    names.forEach(name=>members.push({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"none",speakLimit:0}))
   }
-  members=members.map(m=>({...m,role:m.role||"participant",speakLimit:Number.isFinite(m.speakLimit)?m.speakLimit:(ROLE_LIMITS[m.role]||ROLE_LIMITS.participant),time:Number.isFinite(m.time)?m.time:0}));
+  members=members.map(m=>({...m,role:m.role||"none",speakLimit:Number.isFinite(m.speakLimit)?m.speakLimit:(ROLE_LIMITS[m.role]??0),time:Number.isFinite(m.time)?m.time:0}));
 }
 
 function renderTeamCards(){
@@ -204,8 +231,8 @@ function renderTeamCards(){
 function loadTeamSession(teamName){
   clearInterval(speakerInterval);currentSpeakerId=null;speakerQueue=[];
   const names=teamName==="ALL"?Object.values(TEAM_DATA).flat():(TEAM_DATA[teamName]||[]);
-  members=names.map(name=>({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"participant",speakLimit:ROLE_LIMITS.participant}));
-  speakerTime=ROLE_LIMITS.participant;speakerInitial=ROLE_LIMITS.participant;speakerTimerDisplay.textContent=format(speakerTime);currentSpeakerDisplay.textContent="No one speaking";
+  members=names.map(name=>({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"none",speakLimit:0}));
+  speakerTime=0;speakerInitial=0;speakerTimerDisplay.textContent=format(speakerTime);currentSpeakerDisplay.textContent="No one speaking";
   saveState();render();
 }
 
@@ -214,7 +241,7 @@ function addMember(){
   const name=input.value.trim();
   if(!name)return;
   const existing=members.some(m=>m.name.toLowerCase()===name.toLowerCase());
-  if(!existing){members.push({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"participant",speakLimit:ROLE_LIMITS.participant});saveState()}
+  if(!existing){members.push({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"none",speakLimit:0});saveState()}
   attendanceSearch=name;
   render();
 }
@@ -227,7 +254,18 @@ function startSessionTimer(){
 }
 
 function startSpeakerTimer(){
-  if(!currentSpeakerId)return;
+  if(!currentSpeakerId){
+    const selectedId=document.getElementById("speakerSelect").value;
+    if(!selectedId)return;
+    const selectedMember=members.find(m=>String(m.id)===String(selectedId));
+    if(!selectedMember)return;
+    currentSpeakerId=selectedMember.id;
+    speakerTime=Math.max(0,selectedMember.speakLimit-selectedMember.time);
+    speakerInitial=Math.max(1,selectedMember.speakLimit);
+    speakerTimerDisplay.textContent=format(speakerTime);
+    currentSpeakerDisplay.textContent="Current: "+selectedMember.name;
+    updateProgress();
+  }
   clearInterval(speakerInterval);
   speakerInterval=setInterval(()=>{
     const s=members.find(m=>String(m.id)===String(currentSpeakerId));
@@ -259,7 +297,7 @@ function render(){
   filtered.forEach(m=>{
     if(m.attendance==="present")present++;if(m.attendance==="absent")absent++;
     const li=document.createElement("li");if(m.attendance)li.classList.add(m.attendance);if(String(m.id)===String(currentSpeakerId))li.classList.add("speaking");
-    const name=document.createElement("span");name.textContent=`${m.name} [${m.role}] (${format(m.time)} / ${format(m.speakLimit)})`;
+    const name=document.createElement("span");name.textContent=`${m.name} [${roleLabel(m.role||"none")}] (${format(m.time)} / ${format(m.speakLimit)})`;
     const actions=document.createElement("div");actions.style.display="flex";actions.style.gap="6px";
 
     const p=document.createElement("button");p.textContent="Present";p.className="present-btn";p.onclick=()=>{m.attendance="present";saveState();render()};
@@ -291,15 +329,26 @@ document.getElementById("resetDefaultSession").onclick=()=>{document.getElementB
 
 document.getElementById("startSpeaker").onclick=startSpeakerTimer;
 document.getElementById("pauseSpeaker").onclick=()=>clearInterval(speakerInterval);
-document.getElementById("resetSpeaker").onclick=()=>{clearInterval(speakerInterval);const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(!s)return;s.time=0;speakerTime=s.speakLimit;speakerInitial=s.speakLimit;speakerTimerDisplay.textContent=format(speakerTime);saveState();render()};
+  document.getElementById("resetSpeaker").onclick=()=>{clearInterval(speakerInterval);const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(!s){speakerTime=0;speakerInitial=0;speakerTimerDisplay.textContent=format(speakerTime);updateProgress();return;}s.time=0;speakerTime=s.speakLimit;speakerInitial=Math.max(1,s.speakLimit);speakerTimerDisplay.textContent=format(speakerTime);saveState();render()};
 
 document.getElementById("updateSpeakerInterface").onclick=()=>{
   const id=document.getElementById("speakerSelect").value;
   const role=document.getElementById("roleSelect").value;
   const min=Number(document.getElementById("customMinutes").value);
+  if(!id){
+    currentSpeakerId=null;
+    clearInterval(speakerInterval);
+    speakerTime=0;
+    speakerInitial=0;
+    speakerTimerDisplay.textContent=format(speakerTime);
+    currentSpeakerDisplay.textContent="No one speaking";
+    updateProgress();
+    render();
+    return;
+  }
   const m=members.find(x=>String(x.id)===String(id));
   if(!m)return;
-  const chosenSeconds=min>0?min*60:(ROLE_LIMITS[role]||120);
+  const chosenSeconds=min>=0?min*60:(ROLE_LIMITS[role]??0);
   m.role=role;
   m.speakLimit=chosenSeconds;
   currentSpeakerId=m.id;
@@ -313,9 +362,11 @@ document.getElementById("updateSpeakerInterface").onclick=()=>{
   render();
 };
 
+document.getElementById("speakerSelect").onchange=syncSpeakerConfigFromSelection;
+
 document.getElementById("assignSpecialRole").onclick=()=>{const id=document.getElementById("existingMemberSelect").value;const role=document.getElementById("specialRoleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||m.speakLimit;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
 
-document.getElementById("saveRoleConfig").onclick=()=>{const role=document.getElementById("roleConfigSelect").value;const mins=Number(document.getElementById("roleConfigMinutes").value);if(!role||!mins)return;ROLE_LIMITS[role]=mins*60;members.forEach(m=>{if((m.role||"participant")===role){m.speakLimit=ROLE_LIMITS[role]}});if(currentSpeakerId){const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(s){speakerTime=Math.max(0,s.speakLimit-s.time);speakerInitial=Math.max(1,s.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}}saveRoleConfig();saveState();render()};
+document.getElementById("saveRoleConfig").onclick=()=>{const role=document.getElementById("roleConfigSelect").value;const mins=Number(document.getElementById("roleConfigMinutes").value);if(!role||!mins)return;ROLE_LIMITS[role]=mins*60;members.forEach(m=>{if((m.role||"none")===role){m.speakLimit=ROLE_LIMITS[role]}});if(currentSpeakerId){const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(s){speakerTime=Math.max(0,s.speakLimit-s.time);speakerInitial=Math.max(1,s.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}}saveRoleConfig();saveState();render()};
 document.getElementById("roleConfigMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("saveRoleConfig").click()}});
 
 document.getElementById("downloadCSV").onclick=()=>{let csv="Name,Attendance,Speaking Time,Limit,Role\n";members.forEach(m=>{csv+=`${m.name},${m.attendance||"Not Marked"},${format(m.time)},${format(m.speakLimit)},${m.role}\n`});const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="tafsir_session_report.csv";a.click();URL.revokeObjectURL(url)};

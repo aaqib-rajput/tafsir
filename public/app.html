@@ -152,15 +152,6 @@ li.speaking{border:2px solid var(--primary)}
   <button id="setCustomTime" class="control-btn">Set Time</button>
 </div>
 
-<div class="row">
-  <select id="roleSelect" style="max-width:130px">
-    <option value="participant">Participant (2m)</option>
-    <option value="presenter">Presenter (3m)</option>
-    <option value="cohost">Co-host (5m)</option>
-    <option value="host">Host (10m)</option>
-  </select>
-  <button id="applyRoleTime" class="control-btn">Apply Role</button>
-</div>
 <div class="timer" id="speakerTimerCard">
   <p id="currentSpeaker" class="timer-meta">No one speaking</p>
   <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
@@ -274,18 +265,6 @@ let speakerInitial=120;
 
 function saveRoleConfig(){
   localStorage.setItem("tsm_v3_roles", JSON.stringify(ROLE_LIMITS));
-}
-function refreshRoleLabels(){
-  const sel=document.getElementById("roleSelect");
-  if(!sel) return;
-  [...sel.options].forEach(opt=>{
-    const key=opt.value;
-    if(ROLE_LIMITS[key]){
-      const mins=Math.round(ROLE_LIMITS[key]/60);
-      const label=key==="cohost"?"Co-host":key.charAt(0).toUpperCase()+key.slice(1);
-      opt.textContent=`${label} (${mins}m)`;
-    }
-  });
 }
 
 function saveState(){
@@ -420,7 +399,6 @@ function loadTeamSession(teamName){
   });
 
   render();
-  refreshRoleLabels();
   updateProgress();
 }
 
@@ -460,7 +438,6 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();
 }
 document.getElementById("addBtn").onclick=addMember;
@@ -533,7 +510,6 @@ function loadTeamSession(teamName){
   });
 
   render();
-  refreshRoleLabels();
   updateProgress();
 }
 
@@ -573,7 +549,6 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();
   },1000);
 }
@@ -630,7 +605,6 @@ function loadTeamSession(teamName){
   });
 
   render();
-  refreshRoleLabels();
   updateProgress();
 }
 
@@ -670,54 +644,10 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();
 };
 
 
-document.getElementById("applyRoleTime").onclick=()=>{
-  const id=document.getElementById("speakerSelect").value;
-  const role=document.getElementById("roleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-  m.role=role;
-  m.speakLimit=ROLE_LIMITS[role]||120;
-  saveState();
-  refreshExistingMemberDropdown();
-  
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
 document.getElementById("resetDefaultSession").onclick=function(){
   document.getElementById("teamSessionSelect").value="ALL";
   loadTeamSession("ALL");
@@ -750,7 +680,6 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();
 };
 
@@ -778,7 +707,6 @@ document.getElementById("saveRoleConfig").onclick=()=>{
   saveRoleConfig();
   saveState();
   refreshExistingMemberDropdown();
-  refreshRoleLabels();
   updateProgress();
   render();
 };
@@ -866,7 +794,6 @@ function loadTeamSession(teamName){
   });
 
   render();
-  refreshRoleLabels();
   updateProgress();
 }
 
@@ -906,7 +833,6 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();};
 
     const s=document.createElement("button");
@@ -952,7 +878,6 @@ function loadTeamSession(teamName){
   });
 
   render();
-  refreshRoleLabels();
   updateProgress();
 }
 
@@ -992,7 +917,6 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();
     };
 
@@ -1024,7 +948,6 @@ function loadTeamSession(teamName){
   });
 
   render();
-  refreshRoleLabels();
   updateProgress();
 }
 
@@ -1064,7 +987,6 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();};
 
     const r=document.createElement("button");
@@ -1095,7 +1017,6 @@ function loadTeamSession(teamName){
   });
 
   render();
-  refreshRoleLabels();
   updateProgress();
 }
 
@@ -1135,7 +1056,6 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();};
 
     actions.append(p,s,a,r);
@@ -1192,7 +1112,6 @@ function loadTeamSession(teamName){
   });
 
   render();
-  refreshRoleLabels();
   updateProgress();
 }
 
@@ -1232,7 +1151,6 @@ document.getElementById("assignSpecialRole").onclick=function(){
 };
 
 render();
-refreshRoleLabels();
 updateProgress();
 </script>
 </body>

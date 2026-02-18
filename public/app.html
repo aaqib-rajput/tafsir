@@ -24,6 +24,8 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 .footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem}.card{background:var(--bg);border:1px solid #e5e7eb;border-radius:14px;padding:.8rem}
 .progress-wrap{margin-top:.5rem;background:#e5e7eb;border-radius:999px;height:10px;overflow:hidden}.progress-bar{height:100%;width:0%;background:#4f46e5;transition:width .3s}
 .flash{animation:flash 1s infinite}@keyframes flash{0%,100%{background:#fee2e2}50%{background:#fecaca}}.queue-item{display:inline-block;background:#eef2ff;border-radius:999px;padding:.2rem .5rem;margin:.15rem;font-size:.75rem}
+.speaker-controls{display:flex;gap:.55rem;flex-wrap:wrap;justify-content:flex-start;margin-top:.65rem}
+.queue-wrap{margin-top:.5rem}
 </style>
 </head>
 <body>
@@ -72,51 +74,31 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 
 <section class="panel">
 <h1>Speaker Timer</h1>
+<div class="timer" id="speakerTimerCard">
+  <p id="currentSpeaker" class="timer-meta">No one speaking</p>
+  <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
+  <p id="speakerTimerValue">02:00</p>
+</div>
 <div class="row">
   <select id="speakerSelect"></select>
   <input id="customMinutes" type="number" min="1" placeholder="Min" style="max-width:90px">
-  <button id="setCustomTime" class="control-btn">Set Time</button>
-</div>
-<div class="row">
   <select id="roleSelect" style="max-width:145px">
     <option value="participant">Participant (2m)</option>
     <option value="presenter">Presenter (3m)</option>
     <option value="cohost">Co-host (5m)</option>
     <option value="host">Host (10m)</option>
   </select>
-  <button id="applyRoleTime" class="control-btn">Apply Role</button>
+  <button id="setCustomTime" class="control-btn">Update</button>
 </div>
-<div class="row">
-  <select id="existingMemberSelect"></select>
-  <select id="specialRoleSelect" style="max-width:140px">
-    <option value="host">Host</option>
-    <option value="cohost">Co-host</option>
-    <option value="presenter">Presenter</option>
-  </select>
-  <button id="assignSpecialRole" class="control-btn">Assign Special Role</button>
+<div class="speaker-controls">
+  <button id="startSpeaker" class="control-btn">Start</button>
+  <button id="pauseSpeaker" class="control-btn">Pause</button>
+  <button id="resetSpeaker" class="control-btn">Reset</button>
 </div>
-<div class="row">
-  <select id="roleConfigSelect" style="max-width:150px">
-    <option value="participant">Participant</option>
-    <option value="presenter">Presenter</option>
-    <option value="cohost">Co-host</option>
-    <option value="host">Host</option>
-  </select>
-  <input id="roleConfigMinutes" type="number" min="1" placeholder="Role minutes" style="max-width:120px">
-  <button id="saveRoleConfig" class="control-btn">Add / Update Role</button>
+<div class="queue-wrap">
+  <div class="small">Queue:</div>
+  <div id="queueBox" style="min-height:28px"></div>
 </div>
-<div class="timer" id="speakerTimerCard">
-  <p id="currentSpeaker" class="timer-meta">No one speaking</p>
-  <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
-  <p id="speakerTimerValue">02:00</p>
-  <div class="row" style="justify-content:center;margin-top:.5rem">
-    <button id="startSpeaker" class="control-btn">Start</button>
-    <button id="pauseSpeaker" class="control-btn">Pause</button>
-    <button id="resetSpeaker" class="control-btn">Reset</button>
-  </div>
-</div>
-<div style="margin-top:.6rem" class="small">Queue:</div>
-<div id="queueBox" style="min-height:28px"></div>
 </section>
 
 <section class="footer-panel">
@@ -163,13 +145,12 @@ function renderQueue(){
 
 function refreshMemberDropdowns(){
   const speakerSelect=document.getElementById("speakerSelect");
-  const existingMemberSelect=document.getElementById("existingMemberSelect");
-  speakerSelect.innerHTML="";existingMemberSelect.innerHTML="";
+  speakerSelect.innerHTML="";
   members.forEach(m=>{
     const s=document.createElement("option");s.value=m.id;s.textContent=m.name;speakerSelect.appendChild(s);
-    const e=document.createElement("option");e.value=m.id;e.textContent=`${m.name} (${m.role})`;existingMemberSelect.appendChild(e);
   })
 }
+
 
 function loadInitialData(){
   try{const savedRoles=JSON.parse(localStorage.getItem("tsm_v3_roles")||"null");if(savedRoles&&typeof savedRoles==="object")ROLE_LIMITS={...ROLE_LIMITS,...savedRoles}}catch(e){}
@@ -280,14 +261,8 @@ document.getElementById("startSpeaker").onclick=startSpeakerTimer;
 document.getElementById("pauseSpeaker").onclick=()=>clearInterval(speakerInterval);
 document.getElementById("resetSpeaker").onclick=()=>{clearInterval(speakerInterval);const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(!s)return;s.time=0;speakerTime=s.speakLimit;speakerInitial=s.speakLimit;speakerTimerDisplay.textContent=format(speakerTime);saveState();render()};
 
-document.getElementById("setCustomTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const min=Number(document.getElementById("customMinutes").value);if(!id||!min)return;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.speakLimit=min*60;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
+document.getElementById("setCustomTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const min=Number(document.getElementById("customMinutes").value);const role=document.getElementById("roleSelect").value;if(!id)return;const m=members.find(x=>String(x.id)===String(id));if(!m)return;if(role){m.role=role;m.speakLimit=ROLE_LIMITS[role]||m.speakLimit}if(min){m.speakLimit=min*60}if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
 
-document.getElementById("applyRoleTime").onclick=()=>{const id=document.getElementById("speakerSelect").value;const role=document.getElementById("roleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||120;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
-
-document.getElementById("assignSpecialRole").onclick=()=>{const id=document.getElementById("existingMemberSelect").value;const role=document.getElementById("specialRoleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||m.speakLimit;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
-
-document.getElementById("saveRoleConfig").onclick=()=>{const role=document.getElementById("roleConfigSelect").value;const mins=Number(document.getElementById("roleConfigMinutes").value);if(!role||!mins)return;ROLE_LIMITS[role]=mins*60;members.forEach(m=>{if((m.role||"participant")===role){m.speakLimit=ROLE_LIMITS[role]}});if(currentSpeakerId){const s=members.find(m=>String(m.id)===String(currentSpeakerId));if(s){speakerTime=Math.max(0,s.speakLimit-s.time);speakerInitial=Math.max(1,s.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}}saveRoleConfig();saveState();render()};
-document.getElementById("roleConfigMinutes").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("saveRoleConfig").click()}});
 
 document.getElementById("downloadCSV").onclick=()=>{let csv="Name,Attendance,Speaking Time,Limit,Role\n";members.forEach(m=>{csv+=`${m.name},${m.attendance||"Not Marked"},${format(m.time)},${format(m.speakLimit)},${m.role}\n`});const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="tafsir_session_report.csv";a.click();URL.revokeObjectURL(url)};
 

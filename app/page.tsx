@@ -38,6 +38,7 @@ export default function HomePage() {
   const [search, setSearch] = useState("");
   const [newName, setNewName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [sessionMinutes, setSessionMinutes] = useState(45);
@@ -89,9 +90,10 @@ export default function HomePage() {
       const sorted = [...data.members].sort((a, b) => a.queueOrder - b.queueOrder);
       setMembers(sorted);
     } catch (e) {
-      setError("ڈیٹا لوڈ نہیں ہو سکا، دوبارہ کوشش کریں۔");
+      setError("Unable to load data. Please try again.");
       console.error(e);
     } finally {
+      setHasLoadedInitialData(true);
       setLoading(false);
     }
   };
@@ -136,6 +138,7 @@ export default function HomePage() {
   }, [speakerRunning, currentSpeakerId]);
 
   useEffect(() => {
+    if (!hasLoadedInitialData) return;
     const timeout = window.setTimeout(() => {
       void fetch("/api/members", {
         method: "PUT",
@@ -145,7 +148,7 @@ export default function HomePage() {
     }, 700);
 
     return () => window.clearTimeout(timeout);
-  }, [members]);
+  }, [hasLoadedInitialData, members]);
 
   const addMember = async () => {
     const safeName = newName.trim();

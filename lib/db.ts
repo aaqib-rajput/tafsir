@@ -57,7 +57,11 @@ const writeToFile = async (members: MemberRecord[]) => {
 export const getMembers = async (): Promise<MemberRecord[]> => {
   if (hasKv()) {
     const payload = await kvRequest("get", KV_KEY);
-    const members = (payload.result as MemberRecord[] | null) ?? [];
+    const result = payload.result;
+    const members =
+      typeof result === "string"
+        ? ((JSON.parse(result) as MemberRecord[]) ?? [])
+        : ((result as MemberRecord[] | null) ?? []);
     return [...members].sort((a, b) => a.queueOrder - b.queueOrder);
   }
 

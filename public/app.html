@@ -28,6 +28,7 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 .speaker-header{font-size:2rem}
 .speaker-config{display:grid;grid-template-columns:2fr 1fr 1.6fr auto;gap:.45rem;margin-bottom:.8rem}
 .speaker-config input,.speaker-config select{min-width:0;background:#f8fafc}
+.speaker-config .placeholder{color:#6b7280}
 .speaker-update-btn{background:#c7d2fe;color:#111827;font-weight:600}
 .speaker-timer-shell{background:#e9ebf6;border-radius:14px;padding:1.5rem 1.2rem;text-align:center}
 .speaker-timer-shell .progress-wrap{height:12px;background:#d1d5db}
@@ -87,19 +88,20 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 <h1>Speaker Timer</h1>
 <div class="speaker-config">
   <select id="speakerSelect"></select>
-  <input id="customMinutes" type="number" min="1" placeholder="2" value="2">
+  <input id="customMinutes" type="number" min="0" placeholder="0" value="0">
   <select id="roleSelect">
-    <option value="participant">Participant (2m)</option>
-    <option value="presenter">Presenter (3m)</option>
-    <option value="cohost">Co-host (5m)</option>
-    <option value="host">Host (10m)</option>
+    <option value="">None</option>
+    <option value="participant">Participant</option>
+    <option value="presenter">Presenter</option>
+    <option value="cohost">Co-host</option>
+    <option value="host">Host</option>
   </select>
   <button id="updateSpeakerInterface" class="speaker-update-btn">Update</button>
 </div>
 <div class="timer speaker-timer-shell" id="speakerTimerCard">
   <p id="currentSpeaker" class="timer-meta">No one speaking</p>
   <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
-  <p id="speakerTimerValue">02:00</p>
+  <p id="speakerTimerValue">00:00</p>
   <div class="row speaker-controls">
     <button id="startSpeaker" class="control-btn">Start</button>
     <button id="pauseSpeaker" class="control-btn">Pause</button>
@@ -143,7 +145,7 @@ li.present{background:var(--light-green)}li.absent{background:var(--light-red)}l
 const TEAM_DATA={"Team A":["Nadeem","Zoya","Rohma Zil Arsh","Sameen Zara","Ahmad Adrees","Mubashir Ali","Ali Hanzala","Ammara","Noor Ayesha","Masaud Khan","Khushbakht Tausif Hashmi","Wasif","Romana Daim","Ahsan Raza","Amina Khan","Wania","Shahid Ameer Hamza","Afsana Yaqoob","Safa Shahid","Dr. Rimsha"],"Team B":["Aqib","Khadija","Malaika Imran","Hasnat Fatima","Abdullah Shahbaz","Rimsha Kousar","Attaullah","Sidra Sahir","Maryam Iftikhar","Saleha","Huraima","Sidra Bashir","Usba","Shaheer","Zunaira Rashid","Bilal","Abdur Rehman Khan","Abdullah Chaudhry","Azhar Mehmood","Tahira","Nasseb Ullah","Fiza Urooj","Sadia Wajahat","Muhammad Ibrahim","Rabia Naqi","Zamurrad"],"Team C":["Saboor","Kamran","Sidra Younas","Ishrat Fatima","Saddam Sharif","Faiza","Rehana","Talha Mushtaq","Azeem Aourangzaib","Mrs Azeem Aourangzaib","Muhammad Uzair Rashid","Fahad Khan","Arsalan G14","Arsalan G07","Majid Khan","Abdullah Khan","Kashif Noor","Zain ul Abideen","Farhan Afzal","Amna Fazahil","Bilal Shahid","Hina Yousuf"]};
 const DEFAULT_ROLE_LIMITS={participant:120,presenter:180,cohost:300,host:600};
 let ROLE_LIMITS={...DEFAULT_ROLE_LIMITS};
-let members=[],speakerQueue=[],currentSpeakerId=null,speakerInterval=null,speakerTime=120,speakerInitial=120,sessionInterval=null,sessionTime=0,attendanceSearch="";
+let members=[],speakerQueue=[],currentSpeakerId=null,speakerInterval=null,speakerTime=0,speakerInitial=1,sessionInterval=null,sessionTime=0,attendanceSearch="";
 
 const attendanceList=document.getElementById("attendanceList");
 const summaryList=document.getElementById("summaryList");
@@ -156,7 +158,32 @@ function saveRoleConfig(){localStorage.setItem("tsm_v3_roles",JSON.stringify(ROL
 
 function refreshRoleLabels(){
   const sel=document.getElementById("roleSelect");
-  [...sel.options].forEach(opt=>{const key=opt.value;const mins=Math.round((ROLE_LIMITS[key]||120)/60);const label=key==="cohost"?"Co-host":key.charAt(0).toUpperCase()+key.slice(1);opt.textContent=`${label} (${mins}m)`})
+  [...sel.options].forEach(opt=>{
+    if(!opt.value){opt.textContent="None";return}
+    const key=opt.value;
+    opt.textContent=key==="cohost"?"Co-host":key.charAt(0).toUpperCase()+key.slice(1);
+  })
+}
+
+function syncSpeakerInterfaceFromMember(resetWhenNone=true){
+  const speakerSelect=document.getElementById("speakerSelect");
+  const roleSelect=document.getElementById("roleSelect");
+  const minutesInput=document.getElementById("customMinutes");
+  const selectedId=speakerSelect.value;
+  const selectedMember=members.find(m=>String(m.id)===String(selectedId));
+  if(!selectedMember){
+    if(resetWhenNone){
+      speakerSelect.value="";
+      roleSelect.value="";
+      minutesInput.value="0";
+    }
+    return;
+  }
+
+  const resolvedRole=selectedMember.role||"";
+  const resolvedSeconds=Number.isFinite(selectedMember.speakLimit)?selectedMember.speakLimit:(ROLE_LIMITS[resolvedRole]||0);
+  roleSelect.value=resolvedRole;
+  minutesInput.value=String(Math.floor(Math.max(0,resolvedSeconds)/60));
 }
 
 function sortMembersByRole(){const roleOrder={host:1,cohost:2,presenter:3,participant:4};members.sort((a,b)=>(roleOrder[a.role]||5)-(roleOrder[b.role]||5))}
@@ -177,11 +204,15 @@ function renderQueue(){
 function refreshMemberDropdowns(){
   const speakerSelect=document.getElementById("speakerSelect");
   const existingMemberSelect=document.getElementById("existingMemberSelect");
-  speakerSelect.innerHTML="";existingMemberSelect.innerHTML="";
+  const previousSpeakerValue=speakerSelect.value;
+  speakerSelect.innerHTML='<option value="" class="placeholder">None</option>';existingMemberSelect.innerHTML="";
   members.forEach(m=>{
     const s=document.createElement("option");s.value=m.id;s.textContent=m.name;speakerSelect.appendChild(s);
     const e=document.createElement("option");e.value=m.id;e.textContent=`${m.name} (${m.role})`;existingMemberSelect.appendChild(e);
   })
+  if(previousSpeakerValue&&members.some(m=>String(m.id)===String(previousSpeakerValue))){speakerSelect.value=previousSpeakerValue}
+  else{speakerSelect.value=""}
+  syncSpeakerInterfaceFromMember(true);
 }
 
 function loadInitialData(){
@@ -205,7 +236,7 @@ function loadTeamSession(teamName){
   clearInterval(speakerInterval);currentSpeakerId=null;speakerQueue=[];
   const names=teamName==="ALL"?Object.values(TEAM_DATA).flat():(TEAM_DATA[teamName]||[]);
   members=names.map(name=>({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"participant",speakLimit:ROLE_LIMITS.participant}));
-  speakerTime=ROLE_LIMITS.participant;speakerInitial=ROLE_LIMITS.participant;speakerTimerDisplay.textContent=format(speakerTime);currentSpeakerDisplay.textContent="No one speaking";
+  speakerTime=0;speakerInitial=1;speakerTimerDisplay.textContent=format(speakerTime);currentSpeakerDisplay.textContent="No one speaking";
   saveState();render();
 }
 
@@ -297,10 +328,22 @@ document.getElementById("updateSpeakerInterface").onclick=()=>{
   const id=document.getElementById("speakerSelect").value;
   const role=document.getElementById("roleSelect").value;
   const min=Number(document.getElementById("customMinutes").value);
+  if(!id){
+    currentSpeakerId=null;
+    clearInterval(speakerInterval);
+    speakerTime=0;
+    speakerInitial=1;
+    speakerTimerDisplay.textContent=format(speakerTime);
+    currentSpeakerDisplay.textContent="No one speaking";
+    updateProgress();
+    render();
+    return;
+  }
   const m=members.find(x=>String(x.id)===String(id));
   if(!m)return;
-  const chosenSeconds=min>0?min*60:(ROLE_LIMITS[role]||120);
-  m.role=role;
+  const fallbackLimit=role?(ROLE_LIMITS[role]||0):0;
+  const chosenSeconds=min>0?min*60:fallbackLimit;
+  m.role=role||m.role||"participant";
   m.speakLimit=chosenSeconds;
   currentSpeakerId=m.id;
   clearInterval(speakerInterval);
@@ -312,6 +355,8 @@ document.getElementById("updateSpeakerInterface").onclick=()=>{
   saveState();
   render();
 };
+
+document.getElementById("speakerSelect").addEventListener("change",()=>{syncSpeakerInterfaceFromMember(true)});
 
 document.getElementById("assignSpecialRole").onclick=()=>{const id=document.getElementById("existingMemberSelect").value;const role=document.getElementById("specialRoleSelect").value;const m=members.find(x=>String(x.id)===String(id));if(!m)return;m.role=role;m.speakLimit=ROLE_LIMITS[role]||m.speakLimit;if(String(currentSpeakerId)===String(m.id)){speakerTime=Math.max(0,m.speakLimit-m.time);speakerInitial=Math.max(1,m.speakLimit);speakerTimerDisplay.textContent=format(speakerTime)}saveState();render()};
 

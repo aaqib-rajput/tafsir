@@ -51,8 +51,7 @@ const uniqueNames = (names: string[]) =>
 
 export default function HomePage() {
   const [members, setMembers] = useState<Member[]>([]);
-  const [search, setSearch] = useState("");
-  const [newName, setNewName] = useState("");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +71,8 @@ export default function HomePage() {
   const [dragMemberId, setDragMemberId] = useState<string | null>(null);
 
   const filteredMembers = useMemo(
-    () => members.filter((member) => member.name.toLowerCase().includes(search.trim().toLowerCase())),
-    [members, search],
+    () => members.filter((member) => member.name.toLowerCase().includes(query.trim().toLowerCase())),
+    [members, query],
   );
 
   const currentSpeaker = useMemo(
@@ -211,45 +210,52 @@ export default function HomePage() {
     await syncMembers(next);
   };
 
-  const restorePreviousMembers = async () => {
-    await fetch("/api/members/seed", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    await loadMembers();
-  };
-
   const resetSessionState = async () => {
     setSessionRunning(false);
     setSessionRemaining(0);
+    setSessionInitial(sessionMinutes * 60);
     setSpeakerRunning(false);
-    setSpeakerRemaining(currentSpeaker ? currentSpeaker.speakLimit : 0);
     setSpeakerQueue([]);
+    setCurrentSpeakerId(null);
+    setSpeakerRemaining(0);
 
-    const next = members.map((member, index) => ({
-      ...member,
-      attendance: "unmarked" as AttendanceStatus,
-      elapsedTime: 0,
-      queueOrder: index + 1,
-    }));
-    await syncMembers(next);
+    const response = await fetch("/api/members", { cache: "no-store" });
+    if (!response.ok) {
+      setError("Unable to reset session from database.");
+      return;
+    }
+
+    const data = (await response.json()) as { members: Member[] };
+    const reloaded = [...data.members]
+      .sort((a, b) => a.queueOrder - b.queueOrder)
+      .map((member, index) => ({
+        ...member,
+        attendance: "unmarked" as AttendanceStatus,
+        elapsedTime: 0,
+        queueOrder: index + 1,
+      }));
+
+    await syncMembers(reloaded);
   };
 
-  const addMember = async () => {
-    const safeName = newName.trim();
-    if (!safeName || safeName.toLowerCase() === "none") return;
+  const handleSearchOrAdd = async () => {
+    const value = query.trim();
+    if (!value || value.toLowerCase() === "none") return;
+
+    const exists = members.some((m) => m.name.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      return;
+    }
 
     const response = await fetch("/api/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: safeName }),
+      body: JSON.stringify({ name: value }),
     });
 
     if (response.ok) {
       const data = (await response.json()) as { member: Member };
       setMembers((prev) => [...prev, data.member]);
-      setNewName("");
     }
   };
 
@@ -356,7 +362,7 @@ export default function HomePage() {
       {error && <p className="errorText">{error}</p>}
 
       <section className="grid">
-        <article className="card">
+        <article className="card attendanceCard">
           <h2>Attendance</h2>
           <div className="stats">
             <span>Total: {stats.total}</span>
@@ -366,12 +372,12 @@ export default function HomePage() {
 
           <div className="inline">
             <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void addMember()}
-              placeholder="Member name"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void handleSearchOrAdd()}
+              placeholder="Search member or add if not found"
             />
-            <button className="primary" onClick={() => void addMember()}>Add</button>
+            <button className="primary" onClick={() => void handleSearchOrAdd()}>Search / Add</button>
           </div>
 
           <div className="inline">
@@ -382,15 +388,9 @@ export default function HomePage() {
               <option value="Team C">Team C</option>
             </select>
             <button onClick={() => void loadSelectedTeam()}>Load Team</button>
-            <button onClick={() => void restorePreviousMembers()}>Restore Previous Members</button>
             <button className="danger" onClick={() => void resetSessionState()}>Reset Session</button>
           </div>
 
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search members"
-          />
           <p className="helpText">Drag members to reorder queue or drop on speaker window.</p>
 
           <ul className="list">
@@ -406,16 +406,14 @@ export default function HomePage() {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => dragMemberId && void reorderMembers(dragMemberId, member.id)}
                 >
-                  <div>
+                  <div className="memberMeta">
                     <strong>{member.name}</strong>
                     <p>{formatTime(member.elapsedTime)} / {formatTime(member.speakLimit)}</p>
                   </div>
                   <div className="actions">
                     <button onClick={() => void updateMember(member.id, { attendance: "present" })}>Present</button>
                     <button className="accent" onClick={() => selectSpeaker(member)}>Speak</button>
-                    <button onClick={() => toggleQueue(member.id)}>
-                      {speakerQueue.includes(member.id) ? "Unqueue" : "Queue"}
-                    </button>
+                    <button onClick={() => toggleQueue(member.id)}>{speakerQueue.includes(member.id) ? "Unqueue" : "Queue"}</button>
                     <button onClick={() => void updateMember(member.id, { attendance: "absent" })}>Absent</button>
                     <button className="danger" onClick={() => void removeMember(member.id)}>Remove</button>
                   </div>
@@ -486,7 +484,7 @@ export default function HomePage() {
           </div>
         </article>
 
-        <article className="card">
+        <article className="card compactCard">
           <h2>Session Timer</h2>
           <div className="inline">
             <input
@@ -514,7 +512,7 @@ export default function HomePage() {
           </div>
         </article>
 
-        <article className="card">
+        <article className="card compactCard">
           <h2>Summary & Export</h2>
           <button className="primary" onClick={downloadCsv}>Download CSV</button>
           <ul className="list compact">

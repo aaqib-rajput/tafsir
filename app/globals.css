@@ -5,18 +5,29 @@ body {
   background: linear-gradient(135deg, #eef2ff, #f8fafc);
   color: #111827;
 }
-.container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+.container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
 .titleRow h1 { margin-bottom: 0.25rem; }
 .titleRow p { margin-top: 0; color: #4b5563; }
 .errorText { color: #b91c1c; font-weight: 600; }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
 .card {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   padding: 1rem;
   box-shadow: 0 10px 20px rgba(17, 24, 39, 0.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
 }
+.attendanceCard,
+.card.speaker { min-height: 520px; }
+.compactCard { min-height: 300px; }
 .card.speaker { border: 2px dashed #a5b4fc; }
 h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
 .stats { display: flex; gap: .8rem; flex-wrap: wrap; font-weight: 600; margin-bottom: .6rem; }
@@ -28,16 +39,16 @@ input, select, button {
   font-size: .95rem;
 }
 input, select { flex: 1; min-width: 110px; }
-button { cursor: pointer; background: #f3f4f6; }
+button { cursor: pointer; background: #f3f4f6; white-space: nowrap; }
 button.primary { background: #4f46e5; color: #fff; border-color: #4f46e5; }
 button.accent { background: #dbeafe; }
 button.danger { background: #fee2e2; }
 .helpText, .muted { color: #6b7280; font-size: .9rem; }
-.list { list-style: none; padding: 0; margin: 0; max-height: 360px; overflow: auto; }
-.list.compact { max-height: 240px; margin-top: .6rem; }
+.list { list-style: none; padding: 0; margin: .35rem 0 0; max-height: 320px; overflow: auto; }
+.list.compact { max-height: 220px; }
 .listItem {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto;
   align-items: center;
   gap: .75rem;
   border: 1px solid #e5e7eb;
@@ -46,10 +57,18 @@ button.danger { background: #fee2e2; }
   margin-bottom: .45rem;
   background: #fff;
 }
+.memberMeta { min-width: 0; }
 .listItem.present { background: #dcfce7; }
 .listItem.absent { background: #fee2e2; }
 .listItem p { margin: .15rem 0 0; color: #4b5563; font-size: .85rem; }
-.actions { display: flex; gap: .35rem; flex-wrap: wrap; justify-content: flex-end; }
+.actions {
+  display: flex;
+  gap: .35rem;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  overflow-x: auto;
+}
+.actions button { flex: 0 0 auto; }
 .timer {
   text-align: center;
   font-size: 2.25rem;
@@ -81,7 +100,16 @@ button.danger { background: #fee2e2; }
   padding: .2rem .55rem;
 }
 
+@media (max-width: 1100px) {
+  .actions { flex-wrap: wrap; }
+}
+
 @media (max-width: 900px) {
   .grid { grid-template-columns: 1fr; }
   .speakerConfig { grid-template-columns: 1fr; }
+  .attendanceCard,
+  .card.speaker,
+  .compactCard,
+  .card { min-height: auto; }
+  .listItem { grid-template-columns: 1fr; }
 }

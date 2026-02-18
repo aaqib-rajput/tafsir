@@ -106,3 +106,34 @@ Please confirm:
 3. Whether you want **KV-only** mode, or **Supabase primary + KV fallback**
 
 After that, I can do one final cleanup/hardening pass.
+
+
+---
+
+## Seed the previous member data (same as old app)
+
+I added a seed API to restore the earlier team/member data into your current database.
+
+### Seed once (only if DB is empty)
+
+```bash
+curl -X POST https://YOUR_DOMAIN/api/members/seed \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### Force reset and reseed (overwrites existing members)
+
+```bash
+curl -X POST https://YOUR_DOMAIN/api/members/seed \
+  -H "Content-Type: application/json" \
+  -d '{"force": true}'
+```
+
+Response example:
+
+```json
+{ "ok": true, "seeded": true, "count": 68 }
+```
+
+> `seeded: false` means data already existed and you called without `force`.

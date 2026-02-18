@@ -16,10 +16,81 @@ export type MemberRecord = {
   updatedAt: string;
 };
 
+type SupabaseMemberRow = {
+  id: string;
+  name: string;
+  role: Role;
+  attendance: AttendanceStatus;
+  speak_limit: number;
+  elapsed_time: number;
+  queue_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 const FILE_PATH = path.join(process.cwd(), ".data", "members.json");
 const KV_KEY = "tafsir:members";
 
-const hasKv = () => Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+const hasSupabase = () =>
+  Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+const hasKv = () =>
+  Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+
+const toRecord = (row: SupabaseMemberRow): MemberRecord => ({
+  id: row.id,
+  name: row.name,
+  role: row.role,
+  attendance: row.attendance,
+  speakLimit: row.speak_limit,
+  elapsedTime: row.elapsed_time,
+  queueOrder: row.queue_order,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const toSupabaseRow = (member: MemberRecord): SupabaseMemberRow => ({
+  id: member.id,
+  name: member.name,
+  role: member.role,
+  attendance: member.attendance,
+  speak_limit: member.speakLimit,
+  elapsed_time: member.elapsedTime,
+  queue_order: member.queueOrder,
+  created_at: member.createdAt,
+  updated_at: member.updatedAt,
+});
+
+const supabaseRequest = async <T>(
+  endpoint: string,
+  init: RequestInit = {},
+): Promise<T> => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase config missing");
+
+  const response = await fetch(`${url}/rest/v1/${endpoint}`, {
+    ...init,
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Supabase request failed (${response.status}): ${text}`);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+};
 
 const kvRequest = async (command: string, ...args: string[]) => {
   const url = process.env.KV_REST_API_URL;
@@ -55,6 +126,13 @@ const writeToFile = async (members: MemberRecord[]) => {
 };
 
 export const getMembers = async (): Promise<MemberRecord[]> => {
+  if (hasSupabase()) {
+    const rows = await supabaseRequest<SupabaseMemberRow[]>(
+      "members?select=*&order=queue_order.asc",
+    );
+    return rows.map(toRecord);
+  }
+
   if (hasKv()) {
     const payload = await kvRequest("get", KV_KEY);
     const result = payload.result;
@@ -95,7 +173,11 @@ export const deleteMember = async (id: string) => {
   const members = await getMembers();
   const next = members
     .filter((member) => member.id !== id)
-    .map((member, index) => ({ ...member, queueOrder: index + 1, updatedAt: new Date().toISOString() }));
+    .map((member, index) => ({
+      ...member,
+      queueOrder: index + 1,
+      updatedAt: new Date().toISOString(),
+    }));
   await replaceMembers(next);
 };
 
@@ -106,6 +188,18 @@ export const replaceMembers = async (members: MemberRecord[]) => {
     updatedAt: new Date().toISOString(),
     createdAt: member.createdAt ?? new Date().toISOString(),
   }));
+
+  if (hasSupabase()) {
+    await supabaseRequest("members?id=not.is.null", { method: "DELETE" });
+    if (normalized.length > 0) {
+      await supabaseRequest("members", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify(normalized.map(toSupabaseRow)),
+      });
+    }
+    return;
+  }
 
   if (hasKv()) {
     await kvRequest("set", KV_KEY, JSON.stringify(normalized));

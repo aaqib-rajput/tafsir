@@ -34,8 +34,53 @@ const KV_KEY = "tafsir:members";
 const hasSupabase = () =>
   Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const hasKv = () =>
-  Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+type KvCredentials = {
+  url: string;
+  token: string;
+};
+
+const getKvCredentials = (): KvCredentials | null => {
+  const explicitPairs = [
+    { urlKey: "KV_REST_API_URL", tokenKey: "KV_REST_API_TOKEN" },
+    { urlKey: "UPSTASH_REDIS_REST_URL", tokenKey: "UPSTASH_REDIS_REST_TOKEN" },
+    { urlKey: "KV_URL", tokenKey: "KV_TOKEN" },
+  ];
+
+  for (const pair of explicitPairs) {
+    const url = process.env[pair.urlKey];
+    const token = process.env[pair.tokenKey];
+    if (url && token) {
+      return { url, token };
+    }
+  }
+
+  const keys = Object.keys(process.env);
+  for (const key of keys) {
+    if (!key.endsWith("_REST_API_URL")) continue;
+    const prefix = key.slice(0, -"_REST_API_URL".length);
+    const tokenKey = `${prefix}_REST_API_TOKEN`;
+    const url = process.env[key];
+    const token = process.env[tokenKey];
+    if (url && token) {
+      return { url, token };
+    }
+  }
+
+  for (const key of keys) {
+    if (!key.endsWith("_URL")) continue;
+    const prefix = key.slice(0, -"_URL".length);
+    const tokenKey = `${prefix}_TOKEN`;
+    const url = process.env[key];
+    const token = process.env[tokenKey];
+    if (url && token) {
+      return { url, token };
+    }
+  }
+
+  return null;
+};
+
+const hasKv = () => Boolean(getKvCredentials());
 
 const toRecord = (row: SupabaseMemberRow): MemberRecord => ({
   id: row.id,
@@ -77,8 +122,9 @@ const supabaseRequest = async <T>(
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },
-    cache: "no-store",
-  });
+      cache: "no-store",
+    },
+  );
 
   if (!response.ok) {
     const text = await response.text();
@@ -93,14 +139,16 @@ const supabaseRequest = async <T>(
 };
 
 const kvRequest = async (command: string, ...args: string[]) => {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error("KV config missing");
+  const credentials = getKvCredentials();
+  if (!credentials) throw new Error("KV config missing");
 
-  const response = await fetch(`${url}/${command}/${args.map(encodeURIComponent).join("/")}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
+  const response = await fetch(
+    `${credentials.url}/${command}/${args.map(encodeURIComponent).join("/")}`,
+    {
+      headers: { Authorization: `Bearer ${credentials.token}` },
+      cache: "no-store",
+    },
+  );
 
   if (!response.ok) {
     const text = await response.text();

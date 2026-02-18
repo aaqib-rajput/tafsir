@@ -1,35 +1,61 @@
 # Tafsir Session Manager (Next.js Full-Stack)
 
-This app is now full-stack with API routes and persistent storage.
+This app supports persistent storage and auto-selects backend in this order:
 
-## What storage is supported now?
-
-The backend chooses storage in this order:
-
-1. **Supabase Postgres** (recommended from your screenshot setup)
-2. **Vercel KV** (optional fallback)
-3. **Local file** (`.data/members.json`) for local development only
+1. **Supabase** (`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`)
+2. **Upstash / Vercel KV REST**
+3. Local file fallback (`.data/members.json`) for local dev
 
 ---
 
-## 1) Connect Supabase (Recommended)
+## Upstash KV on Vercel (your current setup)
 
-Since you already added a Supabase project (`supabase-tafsir`), follow these exact steps.
+You are using **Upstash for Redis (Vercel KV replacement)**, which is perfect.
 
-### A. Add environment variables in Vercel
+### Which storage name/prefix should I use?
 
-In **Vercel → Project → Settings → Environment Variables**, add:
+In the **Connect Project** modal, if possible set **Custom Prefix = `KV`**.
+
+That gives env vars like:
+- `KV_REST_API_URL`
+- `KV_REST_API_TOKEN`
+
+This is the cleanest option.
+
+### If you already used another prefix (e.g. `STORAGE`)
+
+No problem — current code auto-detects prefixed REST vars too, such as:
+- `STORAGE_REST_API_URL`
+- `STORAGE_REST_API_TOKEN`
+
+It also supports Upstash default REST names:
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+So you can keep your existing prefix.
+
+### Connect steps in Vercel
+
+1. Open Upstash integration and click **Connect Project**.
+2. Select environments: Development, Preview, Production.
+3. Set prefix:
+   - Recommended: `KV`
+   - Or keep your custom prefix (works now)
+4. Click **Connect**.
+5. Redeploy your app.
+
+---
+
+## Supabase (optional primary DB)
+
+If you also configure Supabase env vars, Supabase becomes primary storage.
+
+### Add env vars in Vercel
 
 - `SUPABASE_URL`
-  - Example: `https://xxxx.supabase.co`
 - `SUPABASE_SERVICE_ROLE_KEY`
-  - From Supabase project settings (API keys)
 
-> Use **Service Role Key** on server-side only. Do **not** expose it in client code.
-
-### B. Create table in Supabase SQL editor
-
-Run this SQL in Supabase:
+### Create table in Supabase SQL Editor
 
 ```sql
 create table if not exists public.members (
@@ -47,48 +73,6 @@ create table if not exists public.members (
 create index if not exists members_queue_order_idx on public.members(queue_order);
 ```
 
-### C. RLS policy options
-
-You have 2 options:
-
-- **Option 1 (simplest for now):** Disable RLS for `members` table.
-- **Option 2 (recommended security):** Keep RLS enabled and only allow server-side access with service role key (this app already uses server API routes).
-
-If you want, I can provide strict RLS policies in the next update.
-
-### D. Redeploy
-
-After adding env vars and table, redeploy in Vercel.
-
----
-
-## 2) Vercel KV (Optional)
-
-If Supabase env vars are missing, app can still use KV if these exist:
-
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
-
-No additional code changes needed.
-
----
-
-## 3) Blob Store / Edge Config from your screenshot
-
-You also created:
-
-- `tafsir_storage` (Blob)
-- `tafsir` (Edge Config)
-
-These are **not required** for current member/attendance database logic.
-
-- Use **Blob** when you want to store files (exports, documents, media).
-- Use **Edge Config** for small feature flags/settings (not relational member data).
-
-If you want, I can wire:
-- CSV upload/download history to Blob
-- role/timer runtime settings to Edge Config
-
 ---
 
 ## Local development
@@ -100,26 +84,25 @@ npm run dev
 
 Open: <http://localhost:3000>
 
-If no cloud env vars are set locally, data is saved in `.data/members.json`.
+If no cloud env vars are set, app stores data in `.data/members.json`.
 
 ---
 
-## Backend/API used by frontend
+## API endpoints
 
 - `GET /api/members` → load members
 - `POST /api/members` → create member
-- `PUT /api/members` → replace/sync members
+- `PUT /api/members` → sync/replace members
 - `DELETE /api/members?id=...` → delete member
 
 ---
 
-## What I need from you (to finalize production DB setup)
+## What I need from you to verify final setup
 
-Please share/confirm these (you can mask secrets):
+Please confirm:
 
-1. `SUPABASE_URL` added in Vercel
-2. `SUPABASE_SERVICE_ROLE_KEY` added in Vercel
-3. `members` table created with the SQL above
-4. Whether RLS is enabled or disabled
+1. Which prefix you selected in Upstash Connect (`KV` or `STORAGE` etc.)
+2. That related env vars are visible in Vercel project settings
+3. Whether you want **KV-only** mode, or **Supabase primary + KV fallback**
 
-Once you confirm, I can provide a final hardening pass (RLS-safe queries + migration scripts + backup strategy).
+After that, I can do one final cleanup/hardening pass.

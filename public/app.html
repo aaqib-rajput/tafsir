@@ -16,41 +16,13 @@
   font-family:Inter,system-ui,sans-serif;
 }
 *{box-sizing:border-box}
-body{
-  margin:0;
-  min-height:100vh;
-  background:linear-gradient(135deg,#eef2ff,#f8fafc);
-  display:flex;
-  justify-content:center;
-  padding:2rem;
-}
-.app{
-  width:min(1250px,96vw);
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  grid-template-rows:auto 1fr;
-  gap:1.2rem;
-}
-.panel{
-  background:white;
-  border-radius:18px;
-  padding:1.2rem;
-  box-shadow:0 16px 30px rgba(0,0,0,0.08);
-  display:flex;
-  flex-direction:column;
-}
+body{margin:0;min-height:100vh;background:linear-gradient(135deg,#eef2ff,#f8fafc);display:flex;justify-content:center;padding:2rem}
+.app{width:min(1250px,96vw);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:1.2rem}
+.panel{background:white;border-radius:18px;padding:1.2rem;box-shadow:0 16px 30px rgba(0,0,0,0.08);display:flex;flex-direction:column}
 h1{margin:0 0 .9rem;font-size:1.15rem}
 .row{display:flex;gap:.5rem;margin-bottom:.6rem;align-items:center}
-input,select{
-  flex:1;
-  padding:.55rem .6rem;
-  border-radius:8px;
-  border:1px solid var(--gray-300);
-  background:#fff;
-}
-button{
-  border:none;border-radius:8px;padding:.45rem .7rem;cursor:pointer;font-size:.84rem
-}
+input,select{flex:1;padding:.55rem .6rem;border-radius:8px;border:1px solid var(--gray-300);background:#fff}
+button{border:none;border-radius:8px;padding:.45rem .7rem;cursor:pointer;font-size:.84rem}
 button:hover{opacity:.92}
 .primary{background:var(--primary);color:#fff}
 .present-btn{background:#dbeafe}
@@ -65,39 +37,15 @@ button:hover{opacity:.92}
 .timer-meta{color:var(--gray-500);font-size:.9rem;margin-bottom:.5rem}
 ul{list-style:none;padding:0;margin:0}
 .scroll-box{overflow-y:auto;max-height:260px}
-li{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-
-  display:flex;justify-content:space-between;align-items:center;
-  padding:.5rem;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:.4rem;
-}
+li{display:flex;justify-content:space-between;align-items:center;padding:.5rem;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:.4rem;gap:10px}
 li.present{background:var(--light-green)}
 li.absent{background:var(--light-red)}
 li.speaking{border:2px solid var(--primary)}
 .small{font-size:.8rem;color:var(--gray-500)}
 .badge{background:#eef2ff;border-radius:999px;padding:.2rem .55rem;font-size:.75rem}
-.footer-panel{
-  grid-column:1 / -1;
-  background:#fff;
-  border-radius:18px;
-  padding:1rem 1.2rem;
-  box-shadow:0 12px 24px rgba(0,0,0,.07);
-}
-.footer-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-  gap:.8rem;
-}
-.card{
-  background:var(--bg);
-  border:1px solid #e5e7eb;
-  border-radius:14px;
-  padding:.8rem;
-}
-
+.footer-panel{grid-column:1 / -1;background:#fff;border-radius:18px;padding:1rem 1.2rem;box-shadow:0 12px 24px rgba(0,0,0,.07)}
+.footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem}
+.card{background:var(--bg);border:1px solid #e5e7eb;border-radius:14px;padding:.8rem}
 .progress-wrap{margin-top:.5rem;background:#e5e7eb;border-radius:999px;height:10px;overflow:hidden}
 .progress-bar{height:100%;width:0%;background:#4f46e5;transition:width .3s}
 .flash{animation:flash 1s infinite}
@@ -106,203 +54,245 @@ li.speaking{border:2px solid var(--primary)}
 </style>
 </head>
 <body>
-
 <main class="app">
 
 <section class="panel">
-<h1>Session Timer</h1>
-<div class="timer">
-  <div class="row">
-    <input id="sessionMinutes" type="number" min="1" placeholder="Minutes..." />
-    <button id="startSession" class="primary">Start</button>
+  <h1>Session Timer</h1>
+  <div class="timer">
+    <div class="row">
+      <input id="sessionMinutes" type="number" min="1" placeholder="Minutes..." />
+      <button id="startSession" class="primary">Start</button>
+    </div>
+    <p id="sessionTimer" class="timer-value">00:00</p>
   </div>
-  <p id="sessionTimer" class="timer-value">00:00</p>
-</div>
 </section>
 
 <section class="panel">
-<h1>Speaking Summary</h1>
-<button id="downloadCSV" class="download-btn" style="margin-bottom:10px">Download CSV</button>
-<div class="scroll-box"><ul id="summaryList"></ul></div>
+  <h1>Speaking Summary</h1>
+  <button id="downloadCSV" class="download-btn" style="margin-bottom:10px">Download CSV</button>
+  <div class="scroll-box"><ul id="summaryList"></ul></div>
 </section>
 
 <section class="panel">
-<h1>Attendance</h1>
+  <h1>Attendance</h1>
 
-<div class="row" style="justify-content:space-between;font-weight:600">
-  <span>Total: <span id="totalCount">0</span></span>
-  <span style="color:green">Present: <span id="presentCount">0</span></span>
-  <span style="color:red">Absent: <span id="absentCount">0</span></span>
-</div>
-
-<div class="row">
-  <input id="nameInput" placeholder="Add new member..." />
-  <button id="addBtn" class="primary">Add</button>
-</div>
-
-<div class="scroll-box"><ul id="attendanceList"></ul></div>
-</section>
-
-<section class="panel">
-<h1>Speaker Timer</h1>
-
-<div class="row">
-  <select id="speakerSelect"></select>
-  <input id="customMinutes" type="number" min="1" placeholder="Min" style="max-width:90px">
-  <button id="setCustomTime" class="control-btn">Set Time</button>
-</div>
-
-<div class="row">
-  <select id="roleSelect" style="max-width:130px">
-    <option value="participant">Participant (2m)</option>
-    <option value="presenter">Presenter (3m)</option>
-    <option value="cohost">Co-host (5m)</option>
-    <option value="host">Host (10m)</option>
-  </select>
-  <button id="applyRoleTime" class="control-btn">Apply Role</button>
-</div>
-<div class="timer" id="speakerTimerCard">
-  <p id="currentSpeaker" class="timer-meta">No one speaking</p>
-  <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
-
-  <p id="speakerTimerValue">02:00</p>
-  <div class="row" style="justify-content:center;margin-top:.5rem">
-    <button id="startSpeaker" class="control-btn">Start</button>
-    <button id="pauseSpeaker" class="control-btn">Pause</button>
-    <button id="resetSpeaker" class="control-btn">Reset</button>
+  <div class="row" style="justify-content:space-between;font-weight:600">
+    <span>Total: <span id="totalCount">0</span></span>
+    <span style="color:green">Present: <span id="presentCount">0</span></span>
+    <span style="color:red">Absent: <span id="absentCount">0</span></span>
   </div>
-</div>
-<div style="margin-top:.6rem" class="small">Queue:</div>
-<div id="queueBox" style="min-height:28px"></div>
+
+  <div class="row">
+    <input id="nameInput" placeholder="Search member or add new member..." />
+    <button id="addBtn" class="primary">Add</button>
+  </div>
+  <div class="small" style="margin-top:-.3rem;margin-bottom:.5rem">Type a name to bring matches on top. Use Add if member does not exist.</div>
+
+  <div class="card" style="margin-bottom:.7rem">
+    <strong>Session Team Control</strong>
+    <div class="row" style="margin-top:.6rem">
+      <select id="teamSessionSelect">
+        <option value="ALL">ALL Teams</option>
+        <option value="Team A">Team A</option>
+        <option value="Team B">Team B</option>
+        <option value="Team C">Team C</option>
+      </select>
+      <button id="applyTeamSession" class="control-btn">Load Team</button>
+      <button id="resetDefaultSession" class="absent-btn">Reset Default</button>
+    </div>
+  </div>
+
+  <div class="scroll-box"><ul id="attendanceList"></ul></div>
 </section>
 
-<section class="footer-panel">
-  <h1 style="margin-bottom:.7rem">Teams (Default Members)</h1>
-  <div class="footer-grid" id="teamCards"></div>
+<section class="panel">
+  <h1>Speaker Timer</h1>
 
-<div class="card">
-  <strong>Role Manager</strong>
-  <div class="small" style="margin:.35rem 0 .5rem">Set default time for roles (auto applied everywhere).</div>
   <div class="row">
-    <select id="roleConfigSelect" style="max-width:150px">
+    <select id="speakerSelect"></select>
+    <input id="customMinutes" type="number" min="1" placeholder="Min" style="max-width:90px">
+    <button id="setCustomTime" class="control-btn">Set Time</button>
+  </div>
+
+  <div class="row">
+    <select id="roleSelect" style="max-width:140px">
       <option value="participant">Participant</option>
       <option value="presenter">Presenter</option>
       <option value="cohost">Co-host</option>
       <option value="host">Host</option>
     </select>
-    <input id="roleConfigMinutes" type="number" min="1" placeholder="Minutes" style="max-width:110px">
-    <button id="saveRoleConfig" class="control-btn">Add / Update Role</button>
+    <button id="applyRoleTime" class="control-btn">Apply Role</button>
   </div>
-</div>
 
-  
-<div class="card">
-  <strong>Session Team Control</strong>
-  <div class="row" style="margin-top:.6rem">
-    <select id="teamSessionSelect">
-      <option value="ALL">ALL Teams</option>
-      <option value="Team A">Team A</option>
-      <option value="Team B">Team B</option>
-      <option value="Team C">Team C</option>
-    </select>
-    <button id="applyTeamSession" class="control-btn">Load Team</button>
-    <button id="resetDefaultSession" class="absent-btn">Reset Default</button>
+  <div class="card" style="margin-bottom:.7rem">
+    <strong>Assign Special Role</strong>
+    <div class="row" style="margin-top:.6rem">
+      <select id="existingMemberSelect"></select>
+      <select id="specialRoleSelect" style="max-width:140px">
+        <option value="host">Host</option>
+        <option value="cohost">Co-host</option>
+        <option value="presenter">Presenter</option>
+      </select>
+      <button id="assignSpecialRole" class="control-btn">Assign</button>
+    </div>
   </div>
-  <div class="small" style="margin-top:.5rem">
-    Default: ALL teams + Host & Co-host + 2 min participants
-  </div>
-</div>
 
-<div class="card">
-  <strong>Assign Special Roles</strong>
-  <div class="row" style="margin-top:.6rem">
-    <select id="existingMemberSelect"></select>
-    <select id="specialRoleSelect" style="max-width:140px">
-      <option value="host">Host</option>
-      <option value="cohost">Co-host</option>
-      <option value="presenter">Presenter</option>
-    </select>
-    <button id="assignSpecialRole" class="control-btn">Assign</button>
+  <div class="card" style="margin-bottom:.7rem">
+    <strong>Role Manager</strong>
+    <div class="small" style="margin:.35rem 0 .5rem">Set default time for each role and auto-apply to members already on that role.</div>
+    <div class="row">
+      <select id="roleConfigSelect" style="max-width:150px">
+        <option value="participant">Participant</option>
+        <option value="presenter">Presenter</option>
+        <option value="cohost">Co-host</option>
+        <option value="host">Host</option>
+      </select>
+      <input id="roleConfigMinutes" type="number" min="1" placeholder="Minutes" style="max-width:110px">
+      <button id="saveRoleConfig" class="control-btn">Add / Update Role</button>
+    </div>
   </div>
-  <div class="small" style="margin-top:.5rem">
-    Assign host, co-host or presenter from existing members.
-  </div>
-</div>
 
-<p class="small" style="margin-top:.6rem">
-    ⚙️ NOTE: Neeche TEAM_DATA mein apni 3 teams ke members daal dein. Page khulte hi automatically load ho jayenge. Add option bhi rahega.
-  </p>
+  <div class="timer" id="speakerTimerCard">
+    <p id="currentSpeaker" class="timer-meta">No one speaking</p>
+    <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
+    <p id="speakerTimerValue">02:00</p>
+    <div class="row" style="justify-content:center;margin-top:.5rem">
+      <button id="startSpeaker" class="control-btn">Start</button>
+      <button id="pauseSpeaker" class="control-btn">Pause</button>
+      <button id="resetSpeaker" class="control-btn">Reset</button>
+    </div>
+  </div>
+
+  <div style="margin-top:.6rem" class="small">Queue:</div>
+  <div id="queueBox" style="min-height:28px"></div>
+</section>
+
+<section class="footer-panel">
+  <h1 style="margin-bottom:.7rem">Teams (Default Members)</h1>
+  <div class="footer-grid" id="teamCards"></div>
+  <p class="small" style="margin-top:.6rem">⚙️ NOTE: TEAM_DATA mein members update kar sakte hain. Page open hone par auto load ho jayenge.</p>
 </section>
 
 </main>
 
 <script>
-// =====================
-// DEFAULT TEAMS (EDIT THIS)
-// =====================
 const TEAM_DATA = {
   "Team A": ["Nadeem","Zoya","Rohma Zil Arsh", "Sameen Zara", "Ahmad Adrees", "Mubashir Ali", "Ali Hanzala", "Ammara", "Noor Ayesha", "Masaud Khan", "Khushbakht Tausif Hashmi", "Wasif", "Romana Daim", "Ahsan Raza", "Amina Khan", "Wania", "Shahid Ameer Hamza", "Afsana Yaqoob", "Safa Shahid", "Dr. Rimsha"],
   "Team B": ["Aqib","Khadija","Malaika Imran", "Hasnat Fatima", "Abdullah Shahbaz", "Rimsha Kousar", "Attaullah", "Sidra Sahir", "Maryam Iftikhar", "Saleha", "Huraima", "Sidra Bashir", "Usba", "Shaheer", "Zunaira Rashid", "Bilal", "Abdur Rehman Khan", "Abdullah Chaudhry", "Azhar Mehmood", "Tahira", "Nasseb Ullah", "Fiza Urooj", "Sadia Wajahat", "Muhammad Ibrahim", "Rabia Naqi", "Zamurrad"],
   "Team C": ["Saboor","Kamran","Sidra Younas", "Ishrat Fatima", "Saddam Sharif", "Faiza", "Rehana", "Talha Mushtaq", "Azeem Aourangzaib", "Mrs Azeem Aourangzaib", "Muhammad Uzair Rashid", "Fahad Khan", "Arsalan G14", "Arsalan G07", "Majid Khan", "Abdullah Khan", "Kashif Noor", "Zain ul Abideen", "Farhan Afzal", "Amna Fazahil", "Bilal Shahid", "Hina Yousuf"]
 };
 
-const DEFAULT_HOST = "Host";
-const DEFAULT_COHOST = "Co-Host";
-const DEFAULT_PARTICIPANT_TIME = 120;
-
-
-// =====================
+const DEFAULT_ROLE_LIMITS={participant:120,presenter:180,cohost:300,host:600};
+let ROLE_LIMITS={...DEFAULT_ROLE_LIMITS};
 let members=[];
 let currentSpeakerId=null;
 let speakerInterval=null;
 let speakerTime=120;
+let speakerInitial=120;
 let sessionInterval=null;
 let sessionTime=0;
-
-const DEFAULT_ROLE_LIMITS={participant:120, presenter:180, cohost:300, host:600};
-let ROLE_LIMITS = {...DEFAULT_ROLE_LIMITS};
-
-try{
-  const savedRoles = JSON.parse(localStorage.getItem("tsm_v3_roles")||"null");
-  if(savedRoles && typeof savedRoles==="object"){
-    ROLE_LIMITS = {...ROLE_LIMITS, ...savedRoles};
-  }
-}catch(e){}
 let speakerQueue=[];
-let speakerInitial=120;
+let searchQuery="";
 
+const attendanceList=document.getElementById("attendanceList");
+const summaryList=document.getElementById("summaryList");
+const speakerTimerDisplay=document.getElementById("speakerTimerValue");
+const currentSpeakerDisplay=document.getElementById("currentSpeaker");
 
-function saveRoleConfig(){
-  localStorage.setItem("tsm_v3_roles", JSON.stringify(ROLE_LIMITS));
-}
-function refreshRoleLabels(){
-  const sel=document.getElementById("roleSelect");
-  if(!sel) return;
-  [...sel.options].forEach(opt=>{
-    const key=opt.value;
-    if(ROLE_LIMITS[key]){
-      const mins=Math.round(ROLE_LIMITS[key]/60);
-      const label=key==="cohost"?"Co-host":key.charAt(0).toUpperCase()+key.slice(1);
-      opt.textContent=`${label} (${mins}m)`;
-    }
-  });
-}
+function format(sec){return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");}
+function normalize(v){return String(v||"").trim().toLowerCase();}
 
-function saveState(){
-  localStorage.setItem("tsm_v3_members", JSON.stringify(members));
-}
+function saveState(){localStorage.setItem("tsm_v3_members", JSON.stringify(members));}
+function saveRoleConfig(){localStorage.setItem("tsm_v3_roles", JSON.stringify(ROLE_LIMITS));}
 
 function updateProgress(){
   const bar=document.getElementById("progressBar");
-  if(!bar) return;
-  const pct = speakerInitial? Math.max(0,Math.min(100,((speakerInitial-speakerTime)/speakerInitial)*100)):0;
+  const pct=speakerInitial?Math.max(0,Math.min(100,((speakerInitial-speakerTime)/speakerInitial)*100)):0;
   bar.style.width=pct+"%";
-  const t=document.getElementById("speakerTimerCard");
-  if(currentSpeakerId && speakerTime<=0){ t.classList.add("flash"); } else { t.classList.remove("flash"); }
+  document.getElementById("speakerTimerCard").classList.toggle("flash",Boolean(currentSpeakerId&&speakerTime<=0));
 }
+
+function refreshRoleLabels(){
+  const map={participant:"Participant",presenter:"Presenter",cohost:"Co-host",host:"Host"};
+  ["roleSelect"].forEach(id=>{
+    const sel=document.getElementById(id);
+    [...sel.options].forEach(opt=>{
+      const secs=ROLE_LIMITS[opt.value]||120;
+      opt.textContent=`${map[opt.value]} (${Math.round(secs/60)}m)`;
+    });
+  });
+}
+
+function renderTeamCards(){
+  const wrap=document.getElementById("teamCards");
+  wrap.innerHTML="";
+  Object.entries(TEAM_DATA).forEach(([team,list])=>{
+    const c=document.createElement("div");
+    c.className="card";
+    c.innerHTML=`<strong>${team}</strong><div class="small" style="margin-top:.4rem">${list.join(", ")}</div>`;
+    wrap.appendChild(c);
+  });
+}
+
+function createMember(name, fromTeam=true){
+  return {id:Date.now()+Math.random(),name,attendance:"",time:0,role:"participant",speakLimit:ROLE_LIMITS.participant,fromTeam,createdAt:Date.now()+Math.random()};
+}
+
+function loadFromStorage(){
+  try{
+    const savedRoles=JSON.parse(localStorage.getItem("tsm_v3_roles")||"null");
+    if(savedRoles&&typeof savedRoles==="object") ROLE_LIMITS={...ROLE_LIMITS,...savedRoles};
+  }catch(e){}
+
+  let loaded=false;
+  try{
+    const data=JSON.parse(localStorage.getItem("tsm_v3_members")||"null");
+    if(Array.isArray(data)&&data.length){
+      members=data.map((m,idx)=>({
+        ...m,
+        attendance:m.attendance||"",
+        time:Number.isFinite(m.time)?m.time:0,
+        role:m.role||"participant",
+        speakLimit:Number.isFinite(m.speakLimit)?m.speakLimit:(ROLE_LIMITS[m.role]||ROLE_LIMITS.participant),
+        fromTeam:m.fromTeam!==false,
+        createdAt:Number.isFinite(m.createdAt)?m.createdAt:idx
+      }));
+      loaded=true;
+    }
+  }catch(e){}
+
+  if(!loaded){
+    const names=[...new Set(Object.values(TEAM_DATA).flat().map(n=>String(n||"").trim()).filter(Boolean))];
+    members=names.map(name=>createMember(name,true));
+  }
+}
+
+function loadTeamSession(teamName){
+  clearInterval(speakerInterval);
+  currentSpeakerId=null;
+  speakerQueue=[];
+  const names=teamName==="ALL"?Object.values(TEAM_DATA).flat():(TEAM_DATA[teamName]||[]);
+  members=names.map(name=>createMember(name,true));
+  speakerTime=120;
+  speakerInitial=120;
+  speakerTimerDisplay.textContent="02:00";
+  currentSpeakerDisplay.textContent="No one speaking";
+  render();
+}
+
+function refreshExistingMemberDropdown(){
+  const sel=document.getElementById("existingMemberSelect");
+  sel.innerHTML="";
+  members.forEach(m=>{
+    const opt=document.createElement("option");
+    opt.value=String(m.id);
+    opt.textContent=`${m.name} (${m.role})`;
+    sel.appendChild(opt);
+  });
+}
+
 function renderQueue(){
   const q=document.getElementById("queueBox");
-  if(!q) return;
   q.innerHTML="";
   speakerQueue.forEach(id=>{
     const m=members.find(x=>String(x.id)===String(id));
@@ -314,514 +304,32 @@ function renderQueue(){
   });
 }
 
-
-const attendanceList=document.getElementById("attendanceList");
-const summaryList=document.getElementById("summaryList");
-const speakerTimerDisplay=document.getElementById("speakerTimerValue");
-const currentSpeakerDisplay=document.getElementById("currentSpeaker");
-
-function format(sec){
-  return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
-}
-
-// LOAD DEFAULT MEMBERS (only if no saved state)
-(function preloadTeams(){
-  const names = new Set();
-  Object.values(TEAM_DATA).flat().forEach(n=>{
-    const name = String(n||"").trim();
-    if(name) names.add(name);
+function sortMembersForAttendance(){
+  const roleOrder={host:1,cohost:2,presenter:3,participant:4};
+  const query=normalize(searchQuery);
+  const clone=[...members];
+  clone.sort((a,b)=>{
+    const aName=a.name.toLowerCase();
+    const bName=b.name.toLowerCase();
+    const aq=query? (aName.startsWith(query)?0:(aName.includes(query)?1:2)):2;
+    const bq=query? (bName.startsWith(query)?0:(bName.includes(query)?1:2)):2;
+    if(aq!==bq) return aq-bq;
+    const ar=roleOrder[a.role]||5;
+    const br=roleOrder[b.role]||5;
+    if(ar!==br) return ar-br;
+    return (a.createdAt||0)-(b.createdAt||0);
   });
-
-  // load saved first
-  let loaded=false;
-  try{
-    const data=JSON.parse(localStorage.getItem("tsm_v3_members")||"null");
-    if(Array.isArray(data) && data.length){
-      members = data;
-      loaded=true;
-    }
-  }catch(e){}
-
-  if(!loaded){
-    names.forEach(name=>{
-      members.push({id:Date.now()+Math.random(),name,attendance:"",time:0,role:"participant",speakLimit:ROLE_LIMITS.participant});
-    });
-  }
-
-  renderTeamCards();
-
-// normalize loaded members
-members = members.map(m=>{
-  if(!m.role) m.role = "participant";
-  if(!m.speakLimit || !Number.isFinite(m.speakLimit)){
-    m.speakLimit = ROLE_LIMITS[m.role] || ROLE_LIMITS.participant;
-  }
-  return m;
-});
-
-})();
-
-function renderTeamCards(){
-  const wrap=document.getElementById("teamCards");
-  wrap.innerHTML="";
-  Object.entries(TEAM_DATA).forEach(([team, list])=>{
-    const c=document.createElement("div");
-    c.className="card";
-    c.innerHTML=`<strong>${team}</strong>
-    <div class="small" style="margin-top:.4rem">${list.join(", ")}</div>`;
-    wrap.appendChild(c);
-  });
-}
-
-/* SESSION TIMER */
-function startSessionTimer(){
-  const min=Number(document.getElementById("sessionMinutes").value);
-  if(!min) return;
-  clearInterval(sessionInterval);
-  sessionTime=min*60;
-  document.getElementById("sessionTimer").textContent=format(sessionTime);
-  sessionInterval=setInterval(()=>{
-    sessionTime--;
-    if(sessionTime<=0) clearInterval(sessionInterval);
-    document.getElementById("sessionTimer").textContent=format(Math.max(0,sessionTime));
-  },1000);
-}
-document.getElementById("startSession").onclick=startSessionTimer;
-
-/* ADD MEMBER */
-function addMember(){
-  const name=document.getElementById("nameInput").value.trim();
-  if(!name) return;
-  members.push({id:Date.now(),name,attendance:"",time:0,role:"participant",speakLimit:ROLE_LIMITS.participant});
-  document.getElementById("nameInput").value="";
-  
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
-};
-
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById("assignSpecialRole").onclick=function(){
-  const id=document.getElementById("existingMemberSelect").value;
-  const role=document.getElementById("specialRoleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-
-  m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
-  render();
-};
-
-render();
-refreshRoleLabels();
-updateProgress();
-}
-document.getElementById("addBtn").onclick=addMember;
-document.getElementById("nameInput").addEventListener("keydown",e=>{
-  if(e.key==="Enter"){ e.preventDefault(); addMember(); }
-});
-document.getElementById("customMinutes").addEventListener("keydown",e=>{
-  if(e.key==="Enter"){ e.preventDefault(); document.getElementById("setCustomTime").click(); }
-});
-
-document.getElementById("nameInput").addEventListener("keypress",e=>{
-  if(e.key==="Enter") addMember();
-});
-
-
-/* SPEAKER TIMER */
-function startSpeakerTimer(){
-  if(!currentSpeakerId) return;
-  clearInterval(speakerInterval);
-  speakerInterval=setInterval(()=>{
-    speakerTime--;
-    const s=members.find(m=>m.id===currentSpeakerId);
-    if(s) s.time++;
-    if(speakerTime<=0){
-      clearInterval(speakerInterval);
-      if(speakerQueue.length){
-        const nextId=speakerQueue.shift();
-        const nm=members.find(m=>m.id===nextId);
-        if(nm){
-          currentSpeakerId=nm.id;
-          speakerTime=nm.speakLimit;
-          speakerInitial=nm.speakLimit;
-          speakerTimerDisplay.textContent=format(speakerTime);
-          currentSpeakerDisplay.textContent="Current: "+nm.name;
-          setTimeout(()=>{
-            updateProgress();
-            startSpeakerTimer();
-            render();
-          },300);
-        }
-      }
-    }
-    speakerTimerDisplay.textContent=format(Math.max(0,speakerTime));
-    updateProgress();
-    saveState();
-  refreshExistingMemberDropdown();
-    
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
-};
-
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById("assignSpecialRole").onclick=function(){
-  const id=document.getElementById("existingMemberSelect").value;
-  const role=document.getElementById("specialRoleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-
-  m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
-  render();
-};
-
-render();
-refreshRoleLabels();
-updateProgress();
-  },1000);
-}
-document.getElementById("startSpeaker").onclick=startSpeakerTimer;
-document.getElementById("pauseSpeaker").onclick=()=>clearInterval(speakerInterval);
-document.getElementById("resetSpeaker").onclick=()=>{
-  clearInterval(speakerInterval);
-  const s=members.find(m=>m.id===currentSpeakerId);
-  if(!s) return;
-  s.time=0;
-  speakerTime=s.speakLimit;
-  speakerInitial=s.speakLimit;
-  speakerTimerDisplay.textContent=format(speakerTime);
-  updateProgress();
-  saveState();
-  refreshExistingMemberDropdown();
-  render();
-};
-
-document.getElementById("setCustomTime").onclick=()=>{
-  const id=document.getElementById("speakerSelect").value;
-  const min=Number(document.getElementById("customMinutes").value);
-  if(!id || !min) return;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-  m.speakLimit=min*60;
-  if(currentSpeakerId===m.id){
-    speakerTime=m.speakLimit;
-    speakerTimerDisplay.textContent=format(speakerTime);
-  }
-  
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
-};
-
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById("assignSpecialRole").onclick=function(){
-  const id=document.getElementById("existingMemberSelect").value;
-  const role=document.getElementById("specialRoleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-
-  m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
-  render();
-};
-
-render();
-refreshRoleLabels();
-updateProgress();
-};
-
-
-document.getElementById("applyRoleTime").onclick=()=>{
-  const id=document.getElementById("speakerSelect").value;
-  const role=document.getElementById("roleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-  m.role=role;
-  m.speakLimit=ROLE_LIMITS[role]||120;
-  saveState();
-  refreshExistingMemberDropdown();
-  
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
-};
-
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById("assignSpecialRole").onclick=function(){
-  const id=document.getElementById("existingMemberSelect").value;
-  const role=document.getElementById("specialRoleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-
-  m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
-  render();
-};
-
-render();
-refreshRoleLabels();
-updateProgress();
-};
-
-
-document.getElementById("saveRoleConfig").onclick=()=>{
-  const role=document.getElementById("roleConfigSelect").value;
-  const mins=Number(document.getElementById("roleConfigMinutes").value);
-  if(!role || !mins) return;
-  ROLE_LIMITS[role]=mins*60;
-
-  // update all members having this role
-  members.forEach(m=>{
-    if((m.role||"participant")===role){
-      m.speakLimit = ROLE_LIMITS[role];
-      // if current speaker, keep resume logic consistent
-      if(currentSpeakerId===m.id){
-        const remaining = Math.max(0, m.speakLimit - m.time);
-        speakerTime = remaining;
-        speakerInitial = m.speakLimit;
-        speakerTimerDisplay.textContent = format(speakerTime);
-      }
-    }
-  });
-
-  saveRoleConfig();
-  saveState();
-  refreshExistingMemberDropdown();
-  refreshRoleLabels();
-  updateProgress();
-  render();
-};
-
-document.getElementById("roleConfigMinutes").addEventListener("keydown",e=>{
-  if(e.key==="Enter"){
-    e.preventDefault();
-    document.getElementById("saveRoleConfig").click();
-  }
-});
-
-/* CSV */
-document.getElementById("downloadCSV").onclick=function(){
-  let csv="Name,Attendance,Speaking Time,Limit\n";
-  renderQueue();
-  members.forEach(m=>{
-    csv+=`${m.name},${m.attendance||"Not Marked"},${format(m.time)},${format(m.speakLimit)}\n`;
-  });
-  const blob=new Blob([csv],{type:"text/csv"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url;a.download="tafsir_session_report.csv";a.click();
-  URL.revokeObjectURL(url);
-};
-
-
-function sortMembersByRole(){
-  const roleOrder = {host:1, cohost:2, presenter:3, participant:4};
-  members.sort((a,b)=>{
-    const ra = roleOrder[a.role] || 5;
-    const rb = roleOrder[b.role] || 5;
-    return ra - rb;
-  });
+  return clone;
 }
 
 function render(){
   attendanceList.innerHTML="";
-  sortMembersByRole();
   summaryList.innerHTML="";
-  let present=0, absent=0;
 
-  renderQueue();
-  members.forEach(m=>{
+  const ordered=sortMembersForAttendance();
+  let present=0,absent=0;
+
+  ordered.forEach(m=>{
     if(m.attendance==="present") present++;
     if(m.attendance==="absent") absent++;
 
@@ -830,313 +338,43 @@ function render(){
     if(m.id===currentSpeakerId) li.classList.add("speaking");
 
     const name=document.createElement("span");
-    name.textContent=`${m.name} [${m.role||"participant"}] (${format(m.time)} / ${format(m.speakLimit)})`;
+    name.textContent=`${m.name} [${m.role}] (${format(m.time)} / ${format(m.speakLimit)})`;
 
     const actions=document.createElement("div");
     actions.style.display="flex";
     actions.style.gap="6px";
-    actions.style.flexWrap="nowrap";
-
 
     const p=document.createElement("button");
-    p.textContent="Present"; p.className="present-btn";
-    p.onclick=()=>{m.attendance="present";
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
-};
-
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById("assignSpecialRole").onclick=function(){
-  const id=document.getElementById("existingMemberSelect").value;
-  const role=document.getElementById("specialRoleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-
-  m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
-  render();
-};
-
-render();
-refreshRoleLabels();
-updateProgress();};
+    p.textContent="Present";
+    p.className="present-btn";
+    p.onclick=()=>{m.attendance="present";render();};
 
     const s=document.createElement("button");
-    s.textContent="Speak"; s.className="speak-btn";
-    if(m.attendance==="absent"){s.disabled=true; s.style.opacity=.4;}
+    s.textContent="Speak";
+    s.className="speak-btn";
+    if(m.attendance==="absent"){s.disabled=true;s.style.opacity=.4;}
     s.onclick=()=>{
       if(m.attendance==="absent") return;
-      if(currentSpeakerId && currentSpeakerId!==m.id){
-        // Switch immediately to new speaker (keep elapsed time already counted)
-        clearInterval(speakerInterval);
-      }
+      clearInterval(speakerInterval);
       currentSpeakerId=m.id;
-      const remaining = Math.max(0, m.speakLimit - m.time);
-      speakerTime=remaining;
-      speakerInitial=Math.max(1, m.speakLimit);
+      speakerTime=Math.max(0,m.speakLimit-m.time);
+      speakerInitial=Math.max(1,m.speakLimit);
       speakerTimerDisplay.textContent=format(speakerTime);
-      currentSpeakerDisplay.textContent="Current: "+m.name;
+      currentSpeakerDisplay.textContent=`Current: ${m.name}`;
       updateProgress();
       startSpeakerTimer();
-      
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
-};
-
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById("assignSpecialRole").onclick=function(){
-  const id=document.getElementById("existingMemberSelect").value;
-  const role=document.getElementById("specialRoleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-
-  m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
-  render();
-};
-
-render();
-refreshRoleLabels();
-updateProgress();
+      render();
     };
 
     const a=document.createElement("button");
-    a.textContent="Absent"; a.className="absent-btn";
-    a.onclick=()=>{m.attendance="absent";
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
-};
-
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById("assignSpecialRole").onclick=function(){
-  const id=document.getElementById("existingMemberSelect").value;
-  const role=document.getElementById("specialRoleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-
-  m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
-  render();
-};
-
-render();
-refreshRoleLabels();
-updateProgress();};
+    a.textContent="Absent";
+    a.className="absent-btn";
+    a.onclick=()=>{m.attendance="absent";render();};
 
     const r=document.createElement("button");
-    r.textContent="Remove"; r.className="remove-btn";
-    r.onclick=()=>{members=members.filter(x=>x.id!==m.id);
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
-  }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
-  render();
-  refreshRoleLabels();
-  updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
-};
-
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
-};
-
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById("assignSpecialRole").onclick=function(){
-  const id=document.getElementById("existingMemberSelect").value;
-  const role=document.getElementById("specialRoleSelect").value;
-  const m=members.find(x=>String(x.id)===String(id));
-  if(!m) return;
-
-  m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
-  render();
-};
-
-render();
-refreshRoleLabels();
-updateProgress();};
+    r.textContent="Remove";
+    r.className="remove-btn";
+    r.onclick=()=>{members=members.filter(x=>x.id!==m.id);render();};
 
     actions.append(p,s,a,r);
     li.append(name,actions);
@@ -1149,90 +387,197 @@ updateProgress();};
     }
   });
 
-  document.getElementById("totalCount").textContent=members.length;
-  document.getElementById("presentCount").textContent=present;
-  document.getElementById("absentCount").textContent=absent;
-  saveState();
-  refreshExistingMemberDropdown();
+  document.getElementById("totalCount").textContent=String(members.length);
+  document.getElementById("presentCount").textContent=String(present);
+  document.getElementById("absentCount").textContent=String(absent);
 
-  const select=document.getElementById("speakerSelect");
-  select.innerHTML="";
-  renderQueue();
+  const speakerSelect=document.getElementById("speakerSelect");
+  speakerSelect.innerHTML="";
   members.forEach(m=>{
     const opt=document.createElement("option");
     opt.value=String(m.id);
     opt.textContent=`${m.name} (${format(m.speakLimit)})`;
-    select.appendChild(opt);
+    speakerSelect.appendChild(opt);
   });
+
+  refreshExistingMemberDropdown();
+  renderQueue();
+  saveState();
 }
 
-
-function loadTeamSession(teamName){
-  clearInterval(speakerInterval);
-  currentSpeakerId=null;
-  speakerQueue=[];
-  members=[];
-
-  let names=[];
-  if(teamName==="ALL"){
-    names=Object.values(TEAM_DATA).flat();
-  } else {
-    names=TEAM_DATA[teamName]||[];
+function addMember(){
+  const input=document.getElementById("nameInput");
+  const name=input.value.trim();
+  if(!name) return;
+  if(members.some(m=>normalize(m.name)===normalize(name))){
+    searchQuery=name;
+    render();
+    return;
   }
-
-  names.forEach(name=>{
-    members.push({
-      id:Date.now()+Math.random(),
-      name,
-      attendance:"",
-      time:0,
-      role:"participant",
-      speakLimit:DEFAULT_PARTICIPANT_TIME
-    });
-  });
-
+  members.push(createMember(name,false));
+  input.value="";
+  searchQuery="";
   render();
-  refreshRoleLabels();
+}
+
+function startSessionTimer(){
+  const min=Number(document.getElementById("sessionMinutes").value);
+  if(!min) return;
+  clearInterval(sessionInterval);
+  sessionTime=min*60;
+  document.getElementById("sessionTimer").textContent=format(sessionTime);
+  sessionInterval=setInterval(()=>{
+    sessionTime--;
+    if(sessionTime<=0) clearInterval(sessionInterval);
+    document.getElementById("sessionTimer").textContent=format(Math.max(0,sessionTime));
+  },1000);
+}
+
+function startSpeakerTimer(){
+  if(!currentSpeakerId) return;
+  clearInterval(speakerInterval);
+  speakerInterval=setInterval(()=>{
+    speakerTime--;
+    const s=members.find(m=>m.id===currentSpeakerId);
+    if(s) s.time++;
+
+    if(speakerTime<=0){
+      clearInterval(speakerInterval);
+      if(speakerQueue.length){
+        const nextId=speakerQueue.shift();
+        const nm=members.find(m=>String(m.id)===String(nextId));
+        if(nm){
+          currentSpeakerId=nm.id;
+          speakerTime=Math.max(0,nm.speakLimit-nm.time);
+          speakerInitial=Math.max(1,nm.speakLimit);
+          speakerTimerDisplay.textContent=format(speakerTime);
+          currentSpeakerDisplay.textContent=`Current: ${nm.name}`;
+          startSpeakerTimer();
+        }
+      }
+    }
+
+    speakerTimerDisplay.textContent=format(Math.max(0,speakerTime));
+    updateProgress();
+    render();
+  },1000);
+}
+
+document.getElementById("startSession").onclick=startSessionTimer;
+document.getElementById("addBtn").onclick=addMember;
+
+document.getElementById("nameInput").addEventListener("input",e=>{searchQuery=e.target.value.trim();render();});
+document.getElementById("nameInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();addMember();}
+});
+
+document.getElementById("startSpeaker").onclick=startSpeakerTimer;
+document.getElementById("pauseSpeaker").onclick=()=>clearInterval(speakerInterval);
+document.getElementById("resetSpeaker").onclick=()=>{
+  clearInterval(speakerInterval);
+  const s=members.find(m=>m.id===currentSpeakerId);
+  if(!s) return;
+  s.time=0;
+  speakerTime=s.speakLimit;
+  speakerInitial=s.speakLimit;
+  speakerTimerDisplay.textContent=format(speakerTime);
   updateProgress();
-}
-
-document.getElementById("applyTeamSession").onclick=function(){
-  loadTeamSession(document.getElementById("teamSessionSelect").value);
+  render();
 };
 
-document.getElementById("resetDefaultSession").onclick=function(){
-  document.getElementById("teamSessionSelect").value="ALL";
-  loadTeamSession("ALL");
+document.getElementById("setCustomTime").onclick=()=>{
+  const id=document.getElementById("speakerSelect").value;
+  const min=Number(document.getElementById("customMinutes").value);
+  if(!id||!min) return;
+  const m=members.find(x=>String(x.id)===String(id));
+  if(!m) return;
+  m.speakLimit=min*60;
+  if(currentSpeakerId===m.id){
+    speakerTime=Math.max(0,m.speakLimit-m.time);
+    speakerInitial=m.speakLimit;
+    speakerTimerDisplay.textContent=format(speakerTime);
+    updateProgress();
+  }
+  render();
 };
 
-function refreshExistingMemberDropdown(){
-  const sel=document.getElementById("existingMemberSelect");
-  if(!sel) return;
-  sel.innerHTML="";
-  members.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m.id;
-    opt.textContent=m.name+" ("+m.role+")";
-    sel.appendChild(opt);
-  });
-}
+document.getElementById("applyRoleTime").onclick=()=>{
+  const id=document.getElementById("speakerSelect").value;
+  const role=document.getElementById("roleSelect").value;
+  const m=members.find(x=>String(x.id)===String(id));
+  if(!m) return;
+  m.role=role;
+  m.speakLimit=ROLE_LIMITS[role]||120;
+  if(currentSpeakerId===m.id){
+    speakerTime=Math.max(0,m.speakLimit-m.time);
+    speakerInitial=m.speakLimit;
+    speakerTimerDisplay.textContent=format(speakerTime);
+    updateProgress();
+  }
+  render();
+};
 
-document.getElementById("assignSpecialRole").onclick=function(){
+document.getElementById("assignSpecialRole").onclick=()=>{
   const id=document.getElementById("existingMemberSelect").value;
   const role=document.getElementById("specialRoleSelect").value;
   const m=members.find(x=>String(x.id)===String(id));
   if(!m) return;
-
   m.role=role;
-  if(role==="host") m.speakLimit=ROLE_LIMITS.host||600;
-  if(role==="cohost") m.speakLimit=ROLE_LIMITS.cohost||300;
-  if(role==="presenter") m.speakLimit=ROLE_LIMITS.presenter||180;
-
+  m.speakLimit=ROLE_LIMITS[role]||m.speakLimit;
+  if(currentSpeakerId===m.id){
+    speakerTime=Math.max(0,m.speakLimit-m.time);
+    speakerInitial=m.speakLimit;
+    speakerTimerDisplay.textContent=format(speakerTime);
+    updateProgress();
+  }
   render();
 };
 
-render();
+document.getElementById("saveRoleConfig").onclick=()=>{
+  const role=document.getElementById("roleConfigSelect").value;
+  const mins=Number(document.getElementById("roleConfigMinutes").value);
+  if(!role||!mins) return;
+  ROLE_LIMITS[role]=mins*60;
+  members.forEach(m=>{
+    if((m.role||"participant")===role){
+      m.speakLimit=ROLE_LIMITS[role];
+      if(currentSpeakerId===m.id){
+        speakerTime=Math.max(0,m.speakLimit-m.time);
+        speakerInitial=m.speakLimit;
+        speakerTimerDisplay.textContent=format(speakerTime);
+      }
+    }
+  });
+  saveRoleConfig();
+  refreshRoleLabels();
+  updateProgress();
+  render();
+};
+
+document.getElementById("roleConfigMinutes").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();document.getElementById("saveRoleConfig").click();}
+});
+
+document.getElementById("applyTeamSession").onclick=()=>loadTeamSession(document.getElementById("teamSessionSelect").value);
+document.getElementById("resetDefaultSession").onclick=()=>{
+  document.getElementById("teamSessionSelect").value="ALL";
+  loadTeamSession("ALL");
+};
+
+document.getElementById("downloadCSV").onclick=()=>{
+  let csv="Name,Attendance,Speaking Time,Limit\n";
+  members.forEach(m=>{csv+=`${m.name},${m.attendance||"Not Marked"},${format(m.time)},${format(m.speakLimit)}\n`;});
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="tafsir_session_report.csv";a.click();
+  URL.revokeObjectURL(url);
+};
+
+loadFromStorage();
+renderTeamCards();
 refreshRoleLabels();
+render();
 updateProgress();
 </script>
 </body>

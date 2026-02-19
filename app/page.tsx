@@ -314,26 +314,31 @@ export default function HomePage() {
     );
   };
 
+  const handleSpeakerRoleChange = (role: Role) => {
+    setSpeakerRole(role);
+    setSpeakerMinutes(Math.max(1, Math.round(roleLimits[role] / 60)));
+  };
+
   const applySpeakerConfig = async () => {
     const limit = Math.max(1, speakerMinutes) * 60;
 
+    if (currentSpeaker) {
+      const nextMembers = members.map((member) =>
+        member.id === currentSpeaker.id
+          ? { ...member, role: speakerRole, speakLimit: limit }
+          : member,
+      );
+      await syncMembers(nextMembers);
+      setSpeakerRemaining(Math.max(0, limit - currentSpeaker.elapsedTime));
+      return;
+    }
+
     setRoleLimits((prev) => ({ ...prev, [speakerRole]: limit }));
 
-    const nextMembers = members.map((member) => {
-      if (currentSpeaker && member.id === currentSpeaker.id) {
-        return { ...member, role: speakerRole, speakLimit: limit };
-      }
-      if (!currentSpeaker && member.role === speakerRole) {
-        return { ...member, speakLimit: limit };
-      }
-      return member;
-    });
-
+    const nextMembers = members.map((member) =>
+      member.role === speakerRole ? { ...member, speakLimit: limit } : member,
+    );
     await syncMembers(nextMembers);
-
-    if (currentSpeaker) {
-      setSpeakerRemaining(Math.max(0, limit - currentSpeaker.elapsedTime));
-    }
   };
 
   const startSession = () => {
@@ -493,7 +498,7 @@ export default function HomePage() {
           <p className="muted">Elapsed: {formatTime(currentSpeaker?.elapsedTime ?? 0)} · Limit: {formatTime(currentSpeaker?.speakLimit ?? 120)}</p>
 
           <div className="speakerConfig">
-            <select value={speakerRole} onChange={(e) => setSpeakerRole(e.target.value as Role)}>
+            <select value={speakerRole} onChange={(e) => handleSpeakerRoleChange(e.target.value as Role)}>
               <option value="participant">Participant ({roleLimits.participant / 60}m)</option>
               <option value="presenter">Presenter ({roleLimits.presenter / 60}m)</option>
               <option value="cohost">Co-host ({roleLimits.cohost / 60}m)</option>

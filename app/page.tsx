@@ -335,6 +335,13 @@ export default function HomePage() {
     setSpeakerMinutes(Math.max(1, Math.round(roleLimits[role] / 60)));
   };
 
+  const displayRoleMinutes = (role: Role) => {
+    if (role === speakerRole) {
+      return Math.max(1, speakerMinutes);
+    }
+    return Math.max(1, Math.round(roleLimits[role] / 60));
+  };
+
   const applySpeakerConfig = async () => {
     const limit = Math.max(1, speakerMinutes) * 60;
 
@@ -515,10 +522,10 @@ export default function HomePage() {
 
           <div className="speakerConfig">
             <select value={speakerRole} onChange={(e) => handleSpeakerRoleChange(e.target.value as Role)}>
-              <option value="participant">Participant ({roleLimits.participant / 60}m)</option>
-              <option value="presenter">Presenter ({roleLimits.presenter / 60}m)</option>
-              <option value="cohost">Co-host ({roleLimits.cohost / 60}m)</option>
-              <option value="host">Host ({roleLimits.host / 60}m)</option>
+              <option value="participant">Participant ({displayRoleMinutes("participant")}m)</option>
+              <option value="presenter">Presenter ({displayRoleMinutes("presenter")}m)</option>
+              <option value="cohost">Co-host ({displayRoleMinutes("cohost")}m)</option>
+              <option value="host">Host ({displayRoleMinutes("host")}m)</option>
             </select>
             <input
               type="number"

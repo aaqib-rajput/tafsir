@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type AttendanceStatus = "present" | "absent" | "unmarked";
 type Role = "participant" | "presenter" | "cohost" | "host";
@@ -70,6 +70,9 @@ export default function HomePage() {
   const [roleLimits, setRoleLimits] = useState<Record<Role, number>>(DEFAULT_ROLE_LIMITS);
   const [teamSelection, setTeamSelection] = useState<TeamKey>("ALL");
   const [dragMemberId, setDragMemberId] = useState<string | null>(null);
+  const [handoffStage, setHandoffStage] = useState<"idle" | "warning" | "prestart">("idle");
+  const [handoffCountdown, setHandoffCountdown] = useState(0);
+  const handoffIntervalRef = useRef<number | null>(null);
 
   const filteredMembers = useMemo(
     () => members.filter((member) => member.name.toLowerCase().includes(query.trim().toLowerCase())),
@@ -112,6 +115,19 @@ export default function HomePage() {
     if (!sessionInitial) return 0;
     return Math.min(100, Math.max(0, ((sessionInitial - sessionRemaining) / sessionInitial) * 100));
   }, [sessionInitial, sessionRemaining]);
+
+  const clearHandoffTimer = () => {
+    if (handoffIntervalRef.current !== null) {
+      window.clearInterval(handoffIntervalRef.current);
+      handoffIntervalRef.current = null;
+    }
+  };
+
+  const cancelHandoff = () => {
+    clearHandoffTimer();
+    setHandoffStage("idle");
+    setHandoffCountdown(0);
+  };
 
   const syncMembers = async (next: Member[]) => {
     setMembers(next);
@@ -213,6 +229,7 @@ export default function HomePage() {
   };
 
   const loadSelectedTeam = async () => {
+    cancelHandoff();
     const next = makeTeamMembers(teamSelection);
     setSpeakerQueue([]);
     setCurrentSpeakerId(null);
@@ -222,6 +239,7 @@ export default function HomePage() {
   };
 
   const resetSessionState = async () => {
+    cancelHandoff();
     setSessionRunning(false);
     setSessionRemaining(0);
     setSessionInitial(sessionMinutes * 60);
@@ -276,6 +294,9 @@ export default function HomePage() {
   };
 
   const removeMember = async (id: string) => {
+    if (currentSpeakerId === id) {
+      cancelHandoff();
+    }
     await fetch(`/api/members?id=${id}`, { method: "DELETE" });
     setMembers((prev) => prev.filter((member) => member.id !== id));
     setSpeakerQueue((prev) => prev.filter((queuedId) => queuedId !== id));
@@ -300,7 +321,10 @@ export default function HomePage() {
     await syncMembers(normalized);
   };
 
-  const selectSpeaker = (member: Member) => {
+  const selectSpeaker = (member: Member, preserveHandoff = false) => {
+    if (!preserveHandoff) {
+      cancelHandoff();
+    }
     setCurrentSpeakerId(member.id);
     setSpeakerRunning(false);
     setSpeakerRole(member.role);
@@ -309,6 +333,7 @@ export default function HomePage() {
   };
 
   const moveToNextSpeaker = () => {
+    cancelHandoff();
     if (speakerQueue.length === 0) return;
     const nextId = speakerQueue[0];
     const nextMember = members.find((member) => member.id === nextId);
@@ -323,6 +348,69 @@ export default function HomePage() {
       prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId],
     );
   };
+
+  const startPrestartCountdown = (nextMember: Member) => {
+    setHandoffStage("prestart");
+    setHandoffCountdown(5);
+
+    clearHandoffTimer();
+    handoffIntervalRef.current = window.setInterval(() => {
+      setHandoffCountdown((prev) => {
+        if (prev <= 1) {
+          clearHandoffTimer();
+          setHandoffStage("idle");
+          setHandoffCountdown(0);
+          setSpeakerRunning(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    selectSpeaker(nextMember, true);
+  };
+
+  const startAutoQueueFlow = () => {
+    if (speakerQueue.length === 0 || handoffStage !== "idle") return;
+
+    setHandoffStage("warning");
+    setHandoffCountdown(5);
+
+    clearHandoffTimer();
+    handoffIntervalRef.current = window.setInterval(() => {
+      setHandoffCountdown((prev) => {
+        if (prev <= 1) {
+          clearHandoffTimer();
+
+          const nextId = speakerQueue[0];
+          const nextMember = members.find((member) => member.id === nextId);
+          setSpeakerQueue((queue) => queue.slice(1));
+
+          if (!nextMember) {
+            setHandoffStage("idle");
+            return 0;
+          }
+
+          startPrestartCountdown(nextMember);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    return () => clearHandoffTimer();
+  }, []);
+
+  useEffect(() => {
+    if (speakerRunning) return;
+    if (!currentSpeaker) return;
+    if (speakerRemaining > 0) return;
+    if (currentSpeaker.elapsedTime < currentSpeaker.speakLimit) return;
+
+    startAutoQueueFlow();
+  }, [speakerRunning, speakerRemaining, currentSpeaker, speakerQueue, members]);
 
   const handleSpeakerRoleChange = (role: Role) => {
     setSpeakerRole(role);
@@ -504,7 +592,7 @@ export default function HomePage() {
         </article>
 
         <article
-          className="card speaker"
+          className={`card speaker ${handoffStage === "warning" ? "speakerAlert" : ""}`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={() => {
             if (!dragMemberId) return;
@@ -514,6 +602,12 @@ export default function HomePage() {
         >
           <h2>Speaker Window</h2>
           <p className="muted">{currentSpeaker ? `Current: ${currentSpeaker.name}` : "No speaker selected"}</p>
+          {handoffStage === "warning" && (
+            <p className="warningText">⏰ Speaker finished. Next speaker in {handoffCountdown}s...</p>
+          )}
+          {handoffStage === "prestart" && currentSpeaker && (
+            <p className="warningText">▶ {currentSpeaker.name} starts in {handoffCountdown}s...</p>
+          )}
           <p className="timer">{formatTime(currentSpeaker ? speakerRemaining : 0)}</p>
           <div className="progressTrack">
             <div className="progressFill" style={{ width: `${speakerProgress}%` }} />

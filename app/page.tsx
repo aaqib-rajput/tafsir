@@ -81,6 +81,16 @@ export default function HomePage() {
     [members, currentSpeakerId],
   );
 
+  useEffect(() => {
+    if (currentSpeaker) {
+      setSpeakerRole(currentSpeaker.role);
+      setSpeakerMinutes(Math.max(1, Math.round(currentSpeaker.speakLimit / 60)));
+      return;
+    }
+
+    setSpeakerMinutes(Math.max(1, Math.round(roleLimits[speakerRole] / 60)));
+  }, [currentSpeaker, roleLimits, speakerRole]);
+
   const queueMembers = useMemo(
     () => speakerQueue.map((id) => members.find((m) => m.id === id)).filter((m): m is Member => Boolean(m)),
     [speakerQueue, members],
@@ -316,6 +326,12 @@ export default function HomePage() {
 
   const handleSpeakerRoleChange = (role: Role) => {
     setSpeakerRole(role);
+
+    if (currentSpeaker && currentSpeaker.role === role) {
+      setSpeakerMinutes(Math.max(1, Math.round(currentSpeaker.speakLimit / 60)));
+      return;
+    }
+
     setSpeakerMinutes(Math.max(1, Math.round(roleLimits[role] / 60)));
   };
 

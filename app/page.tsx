@@ -37,6 +37,9 @@ const TEAM_DATA: Record<Exclude<TeamKey, "ALL">, string[]> = {
   ],
 };
 
+const END_WARNING_DELAY_SECONDS = 10;
+const PRESTART_DELAY_SECONDS = 10;
+
 const formatTime = (seconds: number) => {
   const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
   const mins = Math.floor(safe / 60)
@@ -73,6 +76,8 @@ export default function HomePage() {
   const [handoffStage, setHandoffStage] = useState<"idle" | "warning" | "prestart">("idle");
   const [handoffCountdown, setHandoffCountdown] = useState(0);
   const handoffIntervalRef = useRef<number | null>(null);
+  const membersRef = useRef<Member[]>([]);
+  const queueRef = useRef<string[]>([]);
 
   const filteredMembers = useMemo(
     () => members.filter((member) => member.name.toLowerCase().includes(query.trim().toLowerCase())),
@@ -99,6 +104,14 @@ export default function HomePage() {
     [speakerQueue, members],
   );
 
+
+  useEffect(() => {
+    membersRef.current = members;
+  }, [members]);
+
+  useEffect(() => {
+    queueRef.current = speakerQueue;
+  }, [speakerQueue]);
   const stats = useMemo(() => {
     const present = members.filter((m) => m.attendance === "present").length;
     const absent = members.filter((m) => m.attendance === "absent").length;
@@ -326,6 +339,7 @@ export default function HomePage() {
       cancelHandoff();
     }
     setCurrentSpeakerId(member.id);
+    setSpeakerQueue((prev) => prev.filter((id) => id !== member.id));
     setSpeakerRunning(false);
     setSpeakerRole(member.role);
     setSpeakerMinutes(Math.round(member.speakLimit / 60));
@@ -344,14 +358,45 @@ export default function HomePage() {
   };
 
   const toggleQueue = (memberId: string) => {
+    if (memberId === currentSpeakerId) return;
     setSpeakerQueue((prev) =>
       prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId],
     );
   };
 
+  const dequeueNextEligibleMember = (): Member | null => {
+    const queue = [...queueRef.current];
+    const membersList = membersRef.current;
+
+    while (queue.length > 0) {
+      const nextId = queue.shift() as string;
+      const candidate = membersList.find((member) => member.id === nextId);
+
+      if (!candidate) {
+        continue;
+      }
+
+      if (candidate.id === currentSpeakerId) {
+        continue;
+      }
+
+      if (candidate.elapsedTime >= candidate.speakLimit) {
+        continue;
+      }
+
+      queueRef.current = queue;
+      setSpeakerQueue(queue);
+      return candidate;
+    }
+
+    queueRef.current = queue;
+    setSpeakerQueue(queue);
+    return null;
+  };
+
   const startPrestartCountdown = (nextMember: Member) => {
     setHandoffStage("prestart");
-    setHandoffCountdown(5);
+    setHandoffCountdown(PRESTART_DELAY_SECONDS);
 
     clearHandoffTimer();
     handoffIntervalRef.current = window.setInterval(() => {
@@ -371,10 +416,11 @@ export default function HomePage() {
   };
 
   const startAutoQueueFlow = () => {
-    if (speakerQueue.length === 0 || handoffStage !== "idle") return;
+    if (handoffStage !== "idle") return;
+    if (queueRef.current.length === 0) return;
 
     setHandoffStage("warning");
-    setHandoffCountdown(5);
+    setHandoffCountdown(END_WARNING_DELAY_SECONDS);
 
     clearHandoffTimer();
     handoffIntervalRef.current = window.setInterval(() => {
@@ -382,9 +428,7 @@ export default function HomePage() {
         if (prev <= 1) {
           clearHandoffTimer();
 
-          const nextId = speakerQueue[0];
-          const nextMember = members.find((member) => member.id === nextId);
-          setSpeakerQueue((queue) => queue.slice(1));
+          const nextMember = dequeueNextEligibleMember();
 
           if (!nextMember) {
             setHandoffStage("idle");
@@ -397,6 +441,21 @@ export default function HomePage() {
         return prev - 1;
       });
     }, 1000);
+  };
+
+  const startSpeakerFlow = () => {
+    if (currentSpeaker && speakerRemaining > 0) {
+      cancelHandoff();
+      setSpeakerRunning(true);
+      return;
+    }
+
+    if (!currentSpeaker && queueRef.current.length > 0 && handoffStage === "idle") {
+      const nextMember = dequeueNextEligibleMember();
+      if (nextMember) {
+        startPrestartCountdown(nextMember);
+      }
+    }
   };
 
   useEffect(() => {
@@ -631,7 +690,7 @@ export default function HomePage() {
           </div>
 
           <div className="inline">
-            <button className="primary" onClick={() => setSpeakerRunning(true)} disabled={!currentSpeaker}>Start</button>
+            <button className="primary" onClick={startSpeakerFlow} disabled={!currentSpeaker && speakerQueue.length === 0}>Start</button>
             <button onClick={() => setSpeakerRunning(false)} disabled={!currentSpeaker}>Pause</button>
             <button
               onClick={() => {

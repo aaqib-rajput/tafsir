@@ -1,48 +1,139 @@
-# codex
+# Tafsir Session Manager (Next.js Full-Stack)
 
-This project is now a **Next.js** app wrapping the existing Tafsir Session Manager UI, ready to deploy on **Vercel**.
+This app supports persistent storage and auto-selects backend in this order:
+
+1. **Supabase** (`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`)
+2. **Upstash / Vercel KV REST**
+3. Local file fallback (`.data/members.json`) for local dev
+
+---
+
+## Upstash KV on Vercel (your current setup)
+
+You are using **Upstash for Redis (Vercel KV replacement)**, which is perfect.
+
+### Which storage name/prefix should I use?
+
+In the **Connect Project** modal, if possible set **Custom Prefix = `KV`**.
+
+That gives env vars like:
+- `KV_REST_API_URL`
+- `KV_REST_API_TOKEN`
+
+This is the cleanest option.
+
+### If you already used another prefix (e.g. `STORAGE`)
+
+No problem — current code auto-detects prefixed REST vars too, such as:
+- `STORAGE_REST_API_URL`
+- `STORAGE_REST_API_TOKEN`
+
+It also supports Upstash default REST names:
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+So you can keep your existing prefix.
+
+### Connect steps in Vercel
+
+1. Open Upstash integration and click **Connect Project**.
+2. Select environments: Development, Preview, Production.
+3. Set prefix:
+   - Recommended: `KV`
+   - Or keep your custom prefix (works now)
+4. Click **Connect**.
+5. Redeploy your app.
+
+---
+
+## Supabase (optional primary DB)
+
+If you also configure Supabase env vars, Supabase becomes primary storage.
+
+### Add env vars in Vercel
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+### Create table in Supabase SQL Editor
+
+```sql
+create table if not exists public.members (
+  id text primary key,
+  name text not null,
+  role text not null default 'participant',
+  attendance text not null default 'unmarked',
+  speak_limit integer not null default 120,
+  elapsed_time integer not null default 0,
+  queue_order integer not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists members_queue_order_idx on public.members(queue_order);
+```
+
+---
 
 ## Local development
 
-1. Install dependencies:
-
 ```bash
 npm install
-```
-
-2. Run the Next.js dev server:
-
-```bash
 npm run dev
 ```
 
-3. Open <http://localhost:3000>.
+Open: <http://localhost:3000>
 
-## Production build
+If no cloud env vars are set, app stores data in `.data/members.json`.
+
+---
+
+## API endpoints
+
+- `GET /api/members` → load members
+- `POST /api/members` → create member
+- `PUT /api/members` → sync/replace members
+- `DELETE /api/members?id=...` → delete member
+
+---
+
+## What I need from you to verify final setup
+
+Please confirm:
+
+1. Which prefix you selected in Upstash Connect (`KV` or `STORAGE` etc.)
+2. That related env vars are visible in Vercel project settings
+3. Whether you want **KV-only** mode, or **Supabase primary + KV fallback**
+
+After that, I can do one final cleanup/hardening pass.
+
+
+---
+
+## Seed the previous member data (same as old app)
+
+I added a seed API to restore the earlier team/member data into your current database.
+
+### Seed once (only if DB is empty)
 
 ```bash
-npm run build
-npm run start
+curl -X POST https://YOUR_DOMAIN/api/members/seed \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
-## Deploy to Vercel
-
-### Option 1: Vercel dashboard
-
-1. Push this repository to GitHub.
-2. Import the repo in Vercel.
-3. Keep the default framework preset (**Next.js**).
-4. Click **Deploy**.
-
-### Option 2: Vercel CLI
+### Force reset and reseed (overwrites existing members)
 
 ```bash
-npm i -g vercel
-vercel
+curl -X POST https://YOUR_DOMAIN/api/members/seed \
+  -H "Content-Type: application/json" \
+  -d '{"force": true}'
 ```
 
-For production deployment:
+Response example:
 
-```bash
-vercel --prod
+```json
+{ "ok": true, "seeded": true, "count": 68 }
 ```
+
+> `seeded: false` means data already existed and you called without `force`.

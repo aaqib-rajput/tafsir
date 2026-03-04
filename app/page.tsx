@@ -103,6 +103,18 @@ export default function HomePage() {
     [speakerQueue, members],
   );
 
+  const autoSessionSeconds = useMemo(() => {
+    if (queueMembers.length === 0) return 0;
+
+    const totalSpeakingSeconds = queueMembers.reduce(
+      (sum, member) => sum + Math.max(0, member.speakLimit - member.elapsedTime),
+      0,
+    );
+
+    const totalDelaySeconds = queueMembers.length * (END_WARNING_DELAY_SECONDS + PRESTART_DELAY_SECONDS);
+    return totalSpeakingSeconds + totalDelaySeconds;
+  }, [queueMembers]);
+
 
   useEffect(() => {
     membersRef.current = members;
@@ -538,7 +550,8 @@ export default function HomePage() {
   };
 
   const startSession = () => {
-    const initial = sessionMinutes * 60;
+    const fallbackSeconds = sessionMinutes * 60;
+    const initial = autoSessionSeconds > 0 ? autoSessionSeconds : fallbackSeconds;
     setSessionInitial(initial);
     setSessionRemaining(initial);
     setSessionRunning(true);
@@ -585,6 +598,11 @@ export default function HomePage() {
             />
             <button className="primary" onClick={startSession}>Start Session</button>
           </div>
+          <p className="helpText">
+            {autoSessionSeconds > 0
+              ? `Auto session from queue: ${formatTime(autoSessionSeconds)} (speaking + delays)`
+              : "Add members to queue to auto-calculate full session duration."}
+          </p>
           <p className="timer">{formatTime(sessionRemaining)}</p>
           <div className="progressTrack">
             <div className="progressFill session" style={{ width: `${sessionProgress}%` }} />

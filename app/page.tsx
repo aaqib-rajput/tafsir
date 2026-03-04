@@ -306,9 +306,18 @@ export default function HomePage() {
   };
 
   const removeMember = async (id: string) => {
+    const target = members.find((member) => member.id === id);
+    if (!target) return;
+
+    const confirmed = window.confirm(
+      `Remove ${target.name} permanently from the database? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+
     if (currentSpeakerId === id) {
       cancelHandoff();
     }
+
     await fetch(`/api/members?id=${id}`, { method: "DELETE" });
     setMembers((prev) => prev.filter((member) => member.id !== id));
     setSpeakerQueue((prev) => prev.filter((queuedId) => queuedId !== id));
@@ -624,6 +633,7 @@ export default function HomePage() {
             <button className="danger" onClick={() => void resetSessionState()}>Reset Session</button>
           </div>
 
+          <p className="helpText">New members are saved to database immediately. Remove permanently deletes from database after confirmation.</p>
           <p className="helpText">Drag members to reorder queue or drop on speaker window.</p>
 
           <ul className="list">

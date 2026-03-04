@@ -91,7 +91,6 @@ export default function HomePage() {
 
   useEffect(() => {
     if (currentSpeaker) {
-      setSpeakerRole(currentSpeaker.role);
       setSpeakerMinutes(Math.max(1, Math.round(currentSpeaker.speakLimit / 60)));
       return;
     }
@@ -344,6 +343,13 @@ export default function HomePage() {
     setSpeakerRole(member.role);
     setSpeakerMinutes(Math.round(member.speakLimit / 60));
     setSpeakerRemaining(Math.max(0, member.speakLimit - member.elapsedTime));
+  };
+
+  const clearCurrentSpeaker = () => {
+    cancelHandoff();
+    setCurrentSpeakerId(null);
+    setSpeakerRunning(false);
+    setSpeakerRemaining(0);
   };
 
   const moveToNextSpeaker = () => {
@@ -691,6 +697,7 @@ export default function HomePage() {
 
           <div className="inline">
             <button className="primary" onClick={startSpeakerFlow} disabled={!currentSpeaker && speakerQueue.length === 0}>Start</button>
+            <button onClick={clearCurrentSpeaker} disabled={!currentSpeaker}>Clear Speaker</button>
             <button onClick={() => setSpeakerRunning(false)} disabled={!currentSpeaker}>Pause</button>
             <button
               onClick={() => {

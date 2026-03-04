@@ -111,6 +111,17 @@ export default function HomePage() {
   useEffect(() => {
     queueRef.current = speakerQueue;
   }, [speakerQueue]);
+  const summaryMembers = useMemo(
+    () =>
+      members.filter(
+        (member) =>
+          member.attendance === "present" ||
+          member.attendance === "absent" ||
+          member.elapsedTime > 0,
+      ),
+    [members],
+  );
+
   const stats = useMemo(() => {
     const present = members.filter((m) => m.attendance === "present").length;
     const absent = members.filter((m) => m.attendance === "absent").length;
@@ -534,7 +545,7 @@ export default function HomePage() {
   };
 
   const downloadCsv = () => {
-    const rows = members
+    const rows = summaryMembers
       .filter((member) => member.name.trim() && member.name.toLowerCase() !== "none")
       .map((member) => ({
         Name: member.name,
@@ -595,12 +606,16 @@ export default function HomePage() {
           <h2>Summary & Export</h2>
           <button className="primary" onClick={downloadCsv}>Download CSV</button>
           <ul className="list compact">
-            {members.map((member) => (
-              <li key={member.id} className="listItem">
-                <span>{member.name}</span>
-                <span>{formatTime(member.elapsedTime)}</span>
-              </li>
-            ))}
+            {summaryMembers.length === 0 ? (
+              <li className="listItem">No present/absent/spoken members yet.</li>
+            ) : (
+              summaryMembers.map((member) => (
+                <li key={member.id} className="listItem">
+                  <span>{member.name}</span>
+                  <span>{formatTime(member.elapsedTime)}</span>
+                </li>
+              ))
+            )}
           </ul>
         </article>
 
